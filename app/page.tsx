@@ -37,7 +37,7 @@ export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col overflow-hidden dark:bg-slate-950">
       {/* Hero Section */}
-      <section className="relative flex flex-1 flex-col items-center justify-center bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-700 dark:from-emerald-900 dark:via-teal-900 dark:to-cyan-950 px-4 py-24 text-center text-white overflow-hidden">
+      <section className="relative flex flex-col items-center justify-center bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-700 dark:from-emerald-900 dark:via-teal-900 dark:to-cyan-950 px-4 py-14 sm:py-16 text-center text-white overflow-hidden">
         {/* Toggles en esquina superior derecha */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -79,7 +79,7 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="max-w-4xl space-y-8 relative z-10"
+          className="max-w-3xl space-y-5 relative z-10"
         >
           {/* Badge */}
           <motion.div
@@ -97,7 +97,7 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.25 }}
-            className="text-6xl font-extrabold tracking-tight sm:text-7xl md:text-8xl"
+            className="text-4xl font-extrabold tracking-tight sm:text-5xl"
           >
             My<span className="text-emerald-200 dark:text-emerald-300">Rent</span>
           </motion.h1>
@@ -107,7 +107,7 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.3 }}
-            className="text-xl sm:text-2xl text-emerald-50 dark:text-emerald-100 max-w-2xl mx-auto leading-relaxed"
+            className="text-base sm:text-lg text-emerald-50 dark:text-emerald-100 max-w-xl mx-auto leading-relaxed"
           >
             {t.home.subtitle}
             <span className="block mt-2 font-medium">{t.home.description}</span>
@@ -118,17 +118,17 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.35 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center pt-6"
+            className="flex flex-col sm:flex-row gap-3 justify-center pt-4"
           >
             {/* Botón principal de Registro - más destacado */}
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <Button asChild size="lg" className="text-base sm:text-lg px-8 py-6 bg-white text-emerald-600 hover:bg-emerald-50 shadow-2xl shadow-emerald-900/50 dark:shadow-emerald-950/80 font-semibold group">
+              <Button asChild size="lg" className="text-sm sm:text-base px-6 py-5 bg-white text-emerald-700 hover:bg-emerald-50 shadow-xl font-semibold group">
                 <Link href="/signup" className="flex items-center gap-2">
                   {t.home.cta}
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" aria-hidden />
                 </Link>
               </Button>
             </motion.div>
@@ -138,7 +138,7 @@ export default function HomePage() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <Button asChild size="lg" variant="outline" className="text-base sm:text-lg px-8 py-6 border-2 border-white text-white hover:bg-white hover:text-emerald-600 font-medium transition-colors">
+              <Button asChild size="lg" variant="ghost" className="text-sm sm:text-base px-6 py-5 border-2 border-white/90 bg-transparent text-white hover:bg-white hover:text-emerald-700 font-semibold transition-colors rounded-md">
                 <Link href="/login">{t.home.login}</Link>
               </Button>
             </motion.div>

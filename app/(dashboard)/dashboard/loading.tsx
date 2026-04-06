@@ -5,12 +5,9 @@ export default function DashboardLoading() {
   return (
     <div className="space-y-6 max-w-7xl pb-8">
       {/* Header */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="space-y-1.5">
-          <Skeleton className="h-6 w-28" />
-          <Skeleton className="h-4 w-44" />
-        </div>
-        <Skeleton className="h-7 w-28 rounded-full" />
+      <div className="space-y-1">
+        <Skeleton className="h-5 w-24" />
+        <Skeleton className="h-3 w-40" />
       </div>
 
       {/* Stat cards — matches 1/sm:2/lg:3 grid */}

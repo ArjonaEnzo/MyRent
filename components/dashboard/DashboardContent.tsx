@@ -13,7 +13,6 @@ import {
   BarChart3,
   ArrowRight,
   FileStack,
-  TrendingUp,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useLanguage } from '@/components/providers/language-provider'
@@ -116,26 +115,21 @@ export const DashboardContent = memo(function DashboardContent({
 
   return (
     <div className="space-y-6 max-w-7xl pb-8">
-      {/* Page header — compact, utility-focused, not marketing */}
+      {/* Page header — tight workspace header, not marketing */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25 }}
-        className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-2"
+        className="flex items-center justify-between gap-2"
       >
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground leading-tight">
+          <h1 className="text-lg font-semibold tracking-tight text-foreground leading-tight">
             {t.dashboard.title}
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             {greeting()},{' '}
             <span className="font-medium text-foreground">{firstName}</span>
           </p>
-        </div>
-        {/* Pill badge — high-contrast border so it reads in light mode */}
-        <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded-full w-fit shrink-0">
-          <TrendingUp className="h-3.5 w-3.5" />
-          <span>Actualizado</span>
         </div>
       </motion.div>
 
