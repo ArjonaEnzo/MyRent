@@ -115,64 +115,67 @@ export const DashboardContent = memo(function DashboardContent({
   const firstName = userEmail.split('@')[0]
 
   return (
-    <div className="space-y-10 max-w-7xl pb-8">
-      {/* Page header */}
+    <div className="space-y-6 max-w-7xl pb-8">
+      {/* Page header — compact, utility-focused, not marketing */}
       <motion.div
-        initial={{ opacity: 0, y: 12 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3"
+        transition={{ duration: 0.25 }}
+        className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-2"
       >
         <div>
-          <p className="text-sm font-medium text-muted-foreground mb-0.5">
-            {greeting()},&nbsp;
-            <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{firstName}</span>
-          </p>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          <h1 className="text-xl font-bold tracking-tight text-foreground leading-tight">
             {t.dashboard.title}
           </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {greeting()},{' '}
+            <span className="font-medium text-foreground">{firstName}</span>
+          </p>
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/60 px-3 py-1.5 rounded-full w-fit">
-          <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
-          <span>Resumen actualizado</span>
+        {/* Pill badge — high-contrast border so it reads in light mode */}
+        <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded-full w-fit shrink-0">
+          <TrendingUp className="h-3.5 w-3.5" />
+          <span>Actualizado</span>
         </div>
       </motion.div>
 
-      {/* Stat cards */}
+      {/* Stat cards — 1 col on mobile, 2 on sm, 3 on lg */}
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="grid grid-cols-1 gap-4 sm:grid-cols-3"
+        className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
       >
         {stats.map((stat) => {
           const Icon = iconMap[stat.icon]
           return (
             <motion.div key={stat.href} variants={itemVariants}>
-              <Link href={stat.href} className="group block h-full">
-                <Card className="h-full border border-border/60 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 overflow-hidden">
-                  <div className={cn('h-1 w-full', stat.accentBg ?? stat.border.replace('border-t-', 'bg-'))} />
-                  <CardContent className="p-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">
-                          {stat.label}
-                        </p>
-                        <p className="mt-2 text-4xl font-bold tabular-nums text-foreground leading-none">
-                          {stat.value}
-                        </p>
-                        <p className="mt-1.5 text-xs text-muted-foreground">
-                          {stat.subtitle}
-                        </p>
-                      </div>
+              <Link href={stat.href} className="group block h-full" aria-label={`${stat.label}: ${stat.value}`}>
+                <Card className="h-full border border-border shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 overflow-hidden">
+                  {/* Accent bar */}
+                  <div className={cn('h-[3px] w-full', stat.accentBg)} />
+                  <CardContent className="p-4 sm:p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      {/* Icon box — left-aligned on mobile for better density */}
                       <div
                         className={cn(
-                          'rounded-xl p-3 shrink-0 transition-colors duration-200',
-                          stat.bg,
-                          'group-hover:opacity-90'
+                          'rounded-lg p-2.5 shrink-0 transition-opacity duration-200 group-hover:opacity-80',
+                          stat.bg
                         )}
                       >
-                        {Icon ? <Icon className={cn('h-6 w-6', stat.color)} /> : null}
+                        {Icon ? <Icon className={cn('h-5 w-5', stat.color)} aria-hidden /> : null}
+                      </div>
+                      {/* Numbers on the right for scan-ability */}
+                      <div className="flex-1 text-right min-w-0">
+                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate">
+                          {stat.label}
+                        </p>
+                        <p className="mt-1 text-3xl font-bold tabular-nums text-foreground leading-none">
+                          {stat.value}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground truncate">
+                          {stat.subtitle}
+                        </p>
                       </div>
                     </div>
                   </CardContent>
@@ -185,50 +188,49 @@ export const DashboardContent = memo(function DashboardContent({
 
       {/* Quick actions */}
       <motion.section
-        initial={{ opacity: 0, y: 16 }}
+        initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.18 }}
+        transition={{ duration: 0.28, delay: 0.16 }}
         aria-label="Acciones rápidas"
       >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            {t.dashboard.quickActions.title}
-          </h2>
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {t.dashboard.quickActions.title}
+        </h2>
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
           {quickActions.map((action, index) => {
             const Icon = iconMap[action.icon]
             return (
               <motion.div
                 key={action.href}
-                initial={{ opacity: 0, scale: 0.97 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.25, delay: 0.22 + index * 0.05 }}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.22, delay: 0.20 + index * 0.05 }}
               >
                 <Link href={action.href} className="group block">
-                  <Card className="border border-border/60 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 cursor-pointer">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={cn(
-                              'rounded-lg p-2.5 shrink-0 transition-colors duration-200',
-                              // Use solid bg classes that match the action bg colors
-                              action.bg.split(' ')[0]
-                            )}
-                          >
-                            {Icon ? <Icon className={cn('h-5 w-5', action.color)} /> : null}
-                          </div>
-                          <div>
-                            <p className="text-sm font-semibold text-foreground leading-tight">
-                              {action.label}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {action.description}
-                            </p>
-                          </div>
+                  <Card className="border border-border shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 cursor-pointer">
+                    <CardContent className="p-3.5">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={cn(
+                            'rounded-lg p-2 shrink-0',
+                            action.bg.split(' ')[0]
+                          )}
+                        >
+                          {Icon ? <Icon className={cn('h-4 w-4', action.color)} aria-hidden /> : null}
                         </div>
-                        <ArrowRight className="h-4 w-4 text-muted-foreground/40 shrink-0 transition-all duration-200 group-hover:text-muted-foreground group-hover:translate-x-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-foreground leading-tight truncate">
+                            {action.label}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                            {action.description}
+                          </p>
+                        </div>
+                        {/* Arrow always visible at adequate contrast, brighter on hover */}
+                        <ArrowRight
+                          className="h-4 w-4 shrink-0 text-muted-foreground/60 transition-all duration-200 group-hover:text-foreground group-hover:translate-x-0.5"
+                          aria-hidden
+                        />
                       </div>
                     </CardContent>
                   </Card>
@@ -241,65 +243,65 @@ export const DashboardContent = memo(function DashboardContent({
 
       {/* Recent activity */}
       <motion.section
-        initial={{ opacity: 0, y: 16 }}
+        initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.32 }}
+        transition={{ duration: 0.28, delay: 0.30 }}
         aria-label="Actividad reciente"
       >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             {t.dashboard.recentActivity.title}
           </h2>
           {recentReceipts.length > 0 && (
             <Link
               href="/receipts"
-              className="flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors"
+              className="flex items-center gap-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 underline-offset-2 hover:underline transition-colors"
             >
               {t.dashboard.recentActivity.viewAll}
-              <ArrowRight className="h-3.5 w-3.5" />
+              <ArrowRight className="h-3 w-3" aria-hidden />
             </Link>
           )}
         </div>
 
         {recentReceipts.length === 0 ? (
           /* Empty state */
-          <Card className="border border-dashed border-border/70 shadow-none">
-            <CardContent className="flex flex-col items-center justify-center py-14 text-center gap-3">
-              <div className="rounded-2xl bg-muted/70 p-4">
-                <FileStack className="h-8 w-8 text-muted-foreground/50" />
+          <Card className="border border-dashed border-border shadow-none bg-transparent">
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center gap-3">
+              <div className="rounded-2xl bg-muted p-4">
+                <FileStack className="h-7 w-7 text-muted-foreground" aria-hidden />
               </div>
-              <div>
+              <div className="space-y-1">
                 <p className="text-sm font-semibold text-foreground">Sin actividad reciente</p>
-                <p className="text-xs text-muted-foreground mt-1 max-w-xs">
-                  Cuando generes recibos aparecerán aquí. Comienza creando tu primer recibo.
+                <p className="text-xs text-muted-foreground max-w-[260px]">
+                  Cuando generes recibos aparecerán aquí.
                 </p>
               </div>
               <Link
                 href="/receipts/new"
-                className="mt-1 inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus className="h-3.5 w-3.5" aria-hidden />
                 Generar primer recibo
               </Link>
             </CardContent>
           </Card>
         ) : (
-          <Card className="border border-border/60 shadow-sm overflow-hidden">
-            <div className="divide-y divide-border/50">
+          <Card className="border border-border shadow-sm overflow-hidden">
+            <div className="divide-y divide-border">
               {recentReceipts.map((receipt, index) => (
                 <motion.div
                   key={receipt.id}
-                  initial={{ opacity: 0, x: -12 }}
+                  initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.22, delay: 0.36 + index * 0.05 }}
+                  transition={{ duration: 0.2, delay: 0.34 + index * 0.045 }}
                 >
                   <Link
                     href={`/receipts/${receipt.id}`}
-                    className="flex items-center gap-4 px-5 py-3.5 hover:bg-muted/40 transition-colors group"
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors group"
                   >
                     {/* Icon */}
-                    <div className="rounded-lg bg-violet-50 dark:bg-violet-900/20 p-2.5 shrink-0">
-                      <FileText className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                    <div className="rounded-lg bg-violet-100 dark:bg-violet-900/30 p-2 shrink-0">
+                      <FileText className="h-4 w-4 text-violet-600 dark:text-violet-400" aria-hidden />
                     </div>
 
                     {/* Main info */}
@@ -308,7 +310,7 @@ export const DashboardContent = memo(function DashboardContent({
                         {receipt.snapshot_tenant_name}
                       </p>
                       <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                        Período: {receipt.period}
+                        {receipt.period}
                       </p>
                     </div>
 
@@ -317,12 +319,15 @@ export const DashboardContent = memo(function DashboardContent({
                       <span className="text-sm font-bold text-foreground tabular-nums">
                         {formatCurrency(receipt.snapshot_amount, receipt.snapshot_currency)}
                       </span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-[11px] text-muted-foreground">
                         {formatRelativeDate(receipt.created_at)}
                       </span>
                     </div>
 
-                    <ArrowRight className="h-4 w-4 text-muted-foreground/30 shrink-0 transition-all duration-150 group-hover:text-muted-foreground group-hover:translate-x-0.5" />
+                    <ArrowRight
+                      className="h-4 w-4 text-muted-foreground/50 shrink-0 transition-all duration-150 group-hover:text-foreground group-hover:translate-x-0.5"
+                      aria-hidden
+                    />
                   </Link>
                 </motion.div>
               ))}
