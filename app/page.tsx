@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Building2, FileText, Mail, DollarSign, ArrowRight, Sparkles } from 'lucide-react'
+import { Building2, FileText, Mail, DollarSign, ArrowRight, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { motion } from 'framer-motion'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
@@ -35,156 +35,127 @@ export default function HomePage() {
   ]
 
   return (
-    <div className="flex min-h-screen flex-col overflow-hidden dark:bg-slate-950">
-      {/* Hero Section */}
-      <section className="relative flex flex-1 flex-col items-center justify-center bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-700 dark:from-emerald-900 dark:via-teal-900 dark:to-cyan-950 px-4 py-24 text-center text-white overflow-hidden">
-        {/* Toggles en esquina superior derecha */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="absolute top-4 right-4 flex items-center gap-2 z-20"
-        >
-          <ThemeToggle />
-          <LanguageToggle />
-        </motion.div>
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
 
-        {/* Animated background elements */}
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            rotate: [0, 180, 360],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-          className="absolute top-20 left-20 w-64 h-64 bg-emerald-400/20 dark:bg-emerald-400/10 rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{
-            scale: [1.2, 1, 1.2],
-            rotate: [360, 180, 0],
-          }}
-          transition={{
-            duration: 25,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-          className="absolute bottom-20 right-20 w-80 h-80 bg-cyan-400/20 dark:bg-cyan-400/10 rounded-full blur-3xl"
-        />
+      {/* ── Nav ─────────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur-sm">
+        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2 group" aria-label="MyRent inicio">
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-600 text-white text-xs font-bold select-none">
+              M
+            </span>
+            <span className="text-sm font-semibold tracking-tight text-foreground">
+              My<span className="text-emerald-600">Rent</span>
+            </span>
+          </Link>
 
+          {/* Right controls */}
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <LanguageToggle />
+            <Link
+              href="/login"
+              className="hidden sm:inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5"
+            >
+              {t.home.login}
+            </Link>
+            <Button asChild size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 rounded-md">
+              <Link href="/signup">{t.home.cta}</Link>
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* ── Hero ────────────────────────────────────────────────── */}
+      <section className="flex flex-1 flex-col items-center justify-center px-4 py-20 sm:py-28 text-center">
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="max-w-4xl space-y-8 relative z-10"
+          transition={{ duration: 0.4 }}
+          className="max-w-2xl space-y-6"
         >
           {/* Badge */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3, delay: 0.2 }}
-            className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 text-sm"
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>{t.home.badge}</span>
-          </motion.div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+            <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
+            {t.home.badge}
+          </div>
 
-          {/* Title */}
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.25 }}
-            className="text-6xl font-extrabold tracking-tight sm:text-7xl md:text-8xl"
-          >
-            My<span className="text-emerald-200 dark:text-emerald-300">Rent</span>
-          </motion.h1>
+          {/* Headline */}
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-balance text-foreground leading-[1.1]">
+            My<span className="text-emerald-600">Rent</span>
+          </h1>
 
-          {/* Subtitle */}
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.3 }}
-            className="text-xl sm:text-2xl text-emerald-50 dark:text-emerald-100 max-w-2xl mx-auto leading-relaxed"
-          >
+          {/* Sub-headline */}
+          <p className="text-base sm:text-lg text-muted-foreground leading-relaxed text-balance max-w-lg mx-auto">
             {t.home.subtitle}
-            <span className="block mt-2 font-medium">{t.home.description}</span>
-          </motion.p>
+            {' '}{t.home.description}
+          </p>
 
-          {/* CTA Buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.35 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center pt-6"
-          >
-            {/* Botón principal de Registro - más destacado */}
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+          {/* CTAs */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <Button
+              asChild
+              size="lg"
+              className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-7 rounded-md group"
             >
-              <Button asChild size="lg" className="text-base sm:text-lg px-8 py-6 bg-white text-emerald-600 hover:bg-emerald-50 shadow-2xl shadow-emerald-900/50 dark:shadow-emerald-950/80 font-semibold group">
-                <Link href="/signup" className="flex items-center gap-2">
-                  {t.home.cta}
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </Button>
-            </motion.div>
-
-            {/* Botón secundario de Login */}
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              <Link href="/signup" className="flex items-center gap-2">
+                {t.home.cta}
+                <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" aria-hidden />
+              </Link>
+            </Button>
+            <Button
+              asChild
+              size="lg"
+              variant="outline"
+              className="w-full sm:w-auto font-semibold px-7 rounded-md"
             >
-              <Button asChild size="lg" variant="outline" className="text-base sm:text-lg px-8 py-6 border-2 border-white text-white hover:bg-white hover:text-emerald-600 font-medium transition-colors">
-                <Link href="/login">{t.home.login}</Link>
-              </Button>
-            </motion.div>
-          </motion.div>
+              <Link href="/login">{t.home.login}</Link>
+            </Button>
+          </div>
         </motion.div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-24 px-4 bg-gradient-to-b from-white to-emerald-50/30 dark:from-slate-950 dark:to-emerald-950/20">
-        <div className="max-w-6xl mx-auto">
+      {/* ── Features ────────────────────────────────────────────── */}
+      <section className="border-t border-border/60 bg-muted/30 dark:bg-muted/10 px-4 py-16 sm:py-20">
+        <div className="mx-auto max-w-5xl">
+          {/* Section label */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.4 }}
-            className="text-center mb-16"
+            viewport={{ once: true }}
+            transition={{ duration: 0.35 }}
+            className="mb-10 text-center"
           >
-            <h2 className="text-4xl sm:text-5xl font-bold text-slate-900 dark:text-slate-100 mb-4">
+            <p className="text-xs font-semibold uppercase tracking-widest text-emerald-600 dark:text-emerald-500 mb-2">
+              Funcionalidades
+            </p>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground text-balance">
               {t.home.features.title}
             </h2>
-            <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+            <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto text-balance">
               {t.home.features.subtitle}
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {/* Feature cards — left-aligned icon + text */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {features.map((feature, index) => (
               <motion.div
                 key={feature.title}
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: 12 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
-                whileHover={{ y: -8, transition: { duration: 0.15 } }}
-                className="group"
+                viewport={{ once: true }}
+                transition={{ duration: 0.3, delay: index * 0.07 }}
               >
-                <div className="text-center space-y-4 p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-xl transition-all duration-300 h-full">
-                  <motion.div
-                    whileHover={{ rotate: [0, -10, 10, -10, 0], scale: 1.1 }}
-                    transition={{ duration: 0.5 }}
-                    className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg group-hover:shadow-emerald-500/50 transition-shadow"
-                  >
-                    <feature.icon className="h-8 w-8 text-white" />
-                  </motion.div>
-                  <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100">{feature.title}</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{feature.description}</p>
+                <div className="flex gap-4 rounded-xl border border-border bg-card p-5 h-full hover:border-emerald-200 dark:hover:border-emerald-800 hover:shadow-sm transition-all duration-200">
+                  <div className="mt-0.5 shrink-0 flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                    <feature.icon className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-semibold text-foreground">{feature.title}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
+                  </div>
                 </div>
               </motion.div>
             ))}
@@ -192,59 +163,39 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-24 px-4 bg-gradient-to-br from-emerald-600 to-teal-700 dark:from-emerald-900 dark:to-teal-950 relative overflow-hidden">
+      {/* ── Bottom CTA ──────────────────────────────────────────── */}
+      <section className="border-t border-border/60 bg-slate-950 dark:bg-slate-900 px-4 py-14 sm:py-16 text-center">
         <motion.div
-          animate={{
-            scale: [1, 1.1, 1],
-            opacity: [0.3, 0.5, 0.3],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-          className="absolute top-0 right-0 w-96 h-96 bg-emerald-400/30 dark:bg-emerald-400/10 rounded-full blur-3xl"
-        />
-
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.4 }}
-          className="max-w-3xl mx-auto text-center space-y-8 relative z-10"
+          transition={{ duration: 0.35 }}
+          className="mx-auto max-w-xl space-y-5"
         >
-          <h2 className="text-3xl sm:text-4xl font-bold text-white">
+          <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight text-balance">
             {t.home.cta2.title}
           </h2>
-          <p className="text-xl text-emerald-50 dark:text-emerald-100 max-w-xl mx-auto">
+          <p className="text-sm text-slate-400 leading-relaxed text-balance">
             {t.home.cta2.subtitle}
           </p>
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+          <Button
+            asChild
+            size="lg"
+            className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-8 rounded-md group"
           >
-            <Button asChild size="lg" className="text-lg px-10 py-7 bg-white text-emerald-600 hover:bg-emerald-50 shadow-2xl dark:shadow-emerald-950/80 font-semibold group">
-              <Link href="/signup" className="flex items-center gap-2">
-                {t.home.cta2.button}
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </Button>
-          </motion.div>
+            <Link href="/signup" className="flex items-center gap-2">
+              {t.home.cta2.button}
+              <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" aria-hidden />
+            </Link>
+          </Button>
         </motion.div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-8 px-4 bg-slate-900 dark:bg-slate-950 text-center text-sm text-slate-400 dark:text-slate-500">
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-        >
-          {t.home.footer}
-        </motion.p>
+      {/* ── Footer ──────────────────────────────────────────────── */}
+      <footer className="border-t border-white/5 bg-slate-950 dark:bg-slate-900 px-4 py-5 text-center text-xs text-slate-500">
+        {t.home.footer}
       </footer>
+
     </div>
   )
 }

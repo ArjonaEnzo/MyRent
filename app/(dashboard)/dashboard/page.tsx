@@ -56,6 +56,7 @@ export default async function DashboardPage() {
       color: 'text-emerald-600',
       bg: 'bg-emerald-50',
       border: 'border-t-emerald-500',
+      accentBg: 'bg-emerald-500',
     },
     {
       label: 'Inquilinos',
@@ -66,6 +67,7 @@ export default async function DashboardPage() {
       color: 'text-blue-600',
       bg: 'bg-blue-50',
       border: 'border-t-blue-500',
+      accentBg: 'bg-blue-500',
     },
     {
       label: 'Recibos este mes',
@@ -76,6 +78,7 @@ export default async function DashboardPage() {
       color: 'text-purple-600',
       bg: 'bg-purple-50',
       border: 'border-t-purple-500',
+      accentBg: 'bg-purple-500',
     },
   ]
 
