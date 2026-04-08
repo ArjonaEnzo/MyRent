@@ -1,6 +1,6 @@
 'use server'
 
-import { getCurrentUserWithAccount } from '@/lib/supabase/auth'
+import { getCurrentUserWithAccount, requireRole } from '@/lib/supabase/auth'
 import { leaseSchema, leaseAdjustmentSchema, type LeaseInput, type LeaseAdjustmentInput } from '@/lib/validations/lease'
 import type { Database } from '@/types/database.types'
 
@@ -16,6 +16,7 @@ import { validateId } from '@/lib/validations/common'
 export async function createLease(formData: LeaseInput) {
   try {
     const { user, accountId, supabase } = await getCurrentUserWithAccount()
+    await requireRole(supabase, accountId, user.id, ['owner', 'admin'])
     const validated = leaseSchema.parse(formData)
 
     const { error } = await supabase.from('leases').insert({
@@ -57,6 +58,7 @@ export async function updateLease(id: string, formData: LeaseInput) {
   try {
     const validId = validateId(id)
     const { user, accountId, supabase } = await getCurrentUserWithAccount()
+    await requireRole(supabase, accountId, user.id, ['owner', 'admin'])
     const validated = leaseSchema.parse(formData)
 
     const { error } = await supabase
@@ -132,7 +134,8 @@ export async function getLeases(options?: {
 export async function reactivateLease(id: string) {
   try {
     const validId = validateId(id)
-    const { accountId, supabase } = await getCurrentUserWithAccount()
+    const { user, accountId, supabase } = await getCurrentUserWithAccount()
+    await requireRole(supabase, accountId, user.id, ['owner', 'admin'])
 
     const { error } = await supabase
       .from('leases')
@@ -157,6 +160,7 @@ export async function terminateLease(id: string) {
   try {
     const validId = validateId(id)
     const { user, accountId, supabase } = await getCurrentUserWithAccount()
+    await requireRole(supabase, accountId, user.id, ['owner', 'admin'])
 
     const { error } = await supabase
       .from('leases')
@@ -236,48 +240,28 @@ export async function applyAdjustment(formData: LeaseAdjustmentInput) {
     const validated = leaseAdjustmentSchema.parse(formData)
     const validLeaseId = validateId(validated.lease_id)
 
-    // Obtener monto actual del contrato
-    const { data: lease, error: leaseError } = await supabase
-      .from('leases')
-      .select('rent_amount, status')
-      .eq('id', validLeaseId)
-      .eq('account_id', accountId)
-      .single()
-
-    if (leaseError || !lease) {
-      return { success: false, error: 'Contrato no encontrado' }
-    }
-    if (lease.status !== 'active') {
-      return { success: false, error: 'Solo se pueden aplicar ajustes a contratos activos' }
-    }
-
-    // Registrar en historial
-    const { error: insertError } = await supabase.from('lease_adjustments').insert({
-      account_id: accountId,
-      lease_id: validLeaseId,
-      effective_date: validated.effective_date,
-      previous_amount: lease.rent_amount,
-      new_amount: validated.new_amount,
-      adjustment_type: validated.adjustment_type,
-      adjustment_value: validated.adjustment_value ?? null,
-      notes: validated.notes ?? null,
+    // Delega a la RPC atómica: INSERT lease_adjustments + UPDATE leases.rent_amount
+    // + audit_log en una sola transacción con row-level lock.
+    const { error } = await supabase.rpc('apply_lease_adjustment', {
+      p_actor_user_id:    user.id,
+      p_account_id:       accountId,
+      p_lease_id:         validLeaseId,
+      p_effective_date:   validated.effective_date,
+      p_new_amount:       validated.new_amount,
+      p_adjustment_type:  validated.adjustment_type,
+      p_adjustment_value: validated.adjustment_value ?? undefined,
+      p_notes:            validated.notes ?? undefined,
     })
 
-    if (insertError) {
-      logger.error('Failed to insert adjustment', { error: insertError.message })
-      return { success: false, error: 'Error al registrar el ajuste' }
-    }
-
-    // Actualizar monto en el contrato
-    const { error: updateError } = await supabase
-      .from('leases')
-      .update({ rent_amount: validated.new_amount })
-      .eq('id', validLeaseId)
-      .eq('account_id', accountId)
-
-    if (updateError) {
-      logger.error('Failed to update lease amount', { error: updateError.message })
-      return { success: false, error: 'Error al actualizar el monto del contrato' }
+    if (error) {
+      if (error.message.includes('insufficient_privilege')) {
+        return { success: false, error: 'No tenés permisos para aplicar ajustes' }
+      }
+      if (error.message.includes('invalid_state')) {
+        return { success: false, error: 'Solo se pueden aplicar ajustes a contratos activos' }
+      }
+      logger.error('Failed to apply adjustment via RPC', { error: error.message })
+      return { success: false, error: 'Error al aplicar el ajuste' }
     }
 
     logger.info('Adjustment applied', { leaseId: validLeaseId, userId: user.id, newAmount: validated.new_amount })

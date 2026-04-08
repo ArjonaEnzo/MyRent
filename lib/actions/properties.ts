@@ -1,11 +1,20 @@
 'use server'
 
-import { getCurrentUserWithAccount } from '@/lib/supabase/auth'
+import { getCurrentUserWithAccount, requireRole } from '@/lib/supabase/auth'
 import { createAdminClient } from '@/lib/supabase/server'
 import { propertySchema, type PropertyInput } from '@/lib/validations/property'
 import type { Database } from '@/types/database.types'
 
 type Property = Database['public']['Tables']['properties']['Row']
+
+export type PropertyWithActiveLease = Pick<Property, 'id' | 'name' | 'address' | 'created_at' | 'cover_image_url'> & {
+  active_lease: {
+    id: string
+    rent_amount: number
+    currency: string
+    tenant_name: string | null
+  } | null
+}
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { isRedirectError } from 'next/dist/client/components/redirect'
@@ -54,6 +63,7 @@ export async function updateProperty(id: string, formData: PropertyInput) {
     const validId = validateId(id)
 
     const { user, accountId, supabase } = await getCurrentUserWithAccount()
+    await requireRole(supabase, accountId, user.id, ['owner', 'admin'])
     const validated = propertySchema.parse(formData)
 
     const { error } = await supabase
@@ -91,6 +101,7 @@ export async function deleteProperty(id: string) {
     const validId = validateId(id)
 
     const { user, accountId, supabase } = await getCurrentUserWithAccount()
+    await requireRole(supabase, accountId, user.id, ['owner', 'admin'])
 
     // Verificar que no tenga contratos activos
     const { count } = await supabase
@@ -131,7 +142,7 @@ export async function getProperties(options?: {
   page?: number
   limit?: number
   search?: string
-}): Promise<{ properties: Property[]; total: number }> {
+}): Promise<{ properties: PropertyWithActiveLease[]; total: number }> {
   const { accountId, supabase } = await getCurrentUserWithAccount()
 
   const page = options?.page ?? 1
@@ -141,7 +152,7 @@ export async function getProperties(options?: {
 
   let query = supabase
     .from('properties')
-    .select('*', { count: 'exact' })
+    .select('id, name, address, created_at, cover_image_url', { count: 'exact' })
     .eq('account_id', accountId)
     .is('deleted_at', null)
 
@@ -158,13 +169,41 @@ export async function getProperties(options?: {
     return { properties: [], total: 0 }
   }
 
-  return { properties: data, total: count ?? 0 }
+  // Fetch active leases for these properties in a single query
+  const leaseByProperty = new Map<string, { id: string; rent_amount: number; currency: string; tenant_name: string | null }>()
+  if (data.length > 0) {
+    const propertyIds = data.map((p) => p.id)
+    const { data: activeLeases } = await supabase
+      .from('leases')
+      .select('id, property_id, rent_amount, currency, tenants(full_name)')
+      .eq('account_id', accountId)
+      .eq('status', 'active')
+      .in('property_id', propertyIds)
+
+    activeLeases?.forEach((l) => {
+      const tenants = l.tenants as { full_name: string | null } | null
+      leaseByProperty.set(l.property_id, {
+        id: l.id,
+        rent_amount: l.rent_amount,
+        currency: l.currency,
+        tenant_name: tenants?.full_name ?? null,
+      })
+    })
+  }
+
+  const properties: PropertyWithActiveLease[] = data.map((p) => ({
+    ...p,
+    active_lease: leaseByProperty.get(p.id) ?? null,
+  }))
+
+  return { properties, total: count ?? 0 }
 }
 
 export async function reactivateProperty(id: string) {
   try {
     const validId = validateId(id)
     const { user, accountId, supabase } = await getCurrentUserWithAccount()
+    await requireRole(supabase, accountId, user.id, ['owner', 'admin'])
 
     const { error } = await supabase
       .from('properties')
@@ -186,12 +225,12 @@ export async function reactivateProperty(id: string) {
   }
 }
 
-export async function getArchivedProperties(): Promise<Property[]> {
+export async function getArchivedProperties(): Promise<PropertyWithActiveLease[]> {
   const { accountId, supabase } = await getCurrentUserWithAccount()
 
   const { data, error } = await supabase
     .from('properties')
-    .select('*')
+    .select('id, name, address, created_at, cover_image_url')
     .eq('account_id', accountId)
     .not('deleted_at', 'is', null)
     .order('deleted_at', { ascending: false })
@@ -200,7 +239,7 @@ export async function getArchivedProperties(): Promise<Property[]> {
     logger.error('Failed to fetch archived properties', { error: error.message })
     return []
   }
-  return data
+  return data.map((p) => ({ ...p, active_lease: null }))
 }
 
 export async function uploadPropertyImages(

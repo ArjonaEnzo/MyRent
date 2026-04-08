@@ -1,6 +1,6 @@
 'use server'
 
-import { getCurrentUserWithAccount } from '@/lib/supabase/auth'
+import { getCurrentUserWithAccount, requireRole } from '@/lib/supabase/auth'
 import { tenantSchema, type TenantInput } from '@/lib/validations/tenant'
 import type { Database } from '@/types/database.types'
 
@@ -55,6 +55,7 @@ export async function updateTenant(id: string, formData: TenantInput) {
     const validId = validateId(id)
 
     const { user, accountId, supabase } = await getCurrentUserWithAccount()
+    await requireRole(supabase, accountId, user.id, ['owner', 'admin'])
     const validated = tenantSchema.parse(formData)
 
     const { error } = await supabase
@@ -94,6 +95,7 @@ export async function deleteTenant(id: string) {
     const validId = validateId(id)
 
     const { user, accountId, supabase } = await getCurrentUserWithAccount()
+    await requireRole(supabase, accountId, user.id, ['owner', 'admin'])
 
     // Verificar que no tenga contratos activos
     const { count } = await supabase
@@ -203,7 +205,8 @@ export async function getArchivedTenants(): Promise<Tenant[]> {
 export async function reactivateTenant(id: string) {
   try {
     const validId = validateId(id)
-    const { accountId, supabase } = await getCurrentUserWithAccount()
+    const { user, accountId, supabase } = await getCurrentUserWithAccount()
+    await requireRole(supabase, accountId, user.id, ['owner', 'admin'])
 
     const { error } = await supabase
       .from('tenants')

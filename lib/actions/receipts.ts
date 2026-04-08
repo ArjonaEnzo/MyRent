@@ -18,6 +18,7 @@ import { sendReceiptEmail } from '@/lib/email/receipt-email'
 import React from 'react'
 import { receiptRateLimit } from '@/lib/utils/rate-limit'
 import { validateId } from '@/lib/validations/common'
+import { withRetry } from '@/lib/utils/retry'
 
 export async function createReceipt(formData: ReceiptInput) {
   try {
@@ -40,6 +41,15 @@ export async function createReceipt(formData: ReceiptInput) {
       return { success: false, error: 'Contrato no encontrado' }
     }
 
+    // Obtener el DNI/CUIT del inquilino para el snapshot
+    const { data: tenantData } = lease.tenant_id
+      ? await supabase
+          .from('tenants')
+          .select('dni_cuit')
+          .eq('id', lease.tenant_id)
+          .single()
+      : { data: null }
+
     const receiptId = crypto.randomUUID()
     const now = new Date()
     const dateStr = now.toLocaleDateString('es-AR', {
@@ -52,8 +62,8 @@ export async function createReceipt(formData: ReceiptInput) {
     const pdfElement = React.createElement(ReceiptPDF, {
       recipientName: lease.tenant_name ?? '',
       recipientAddress: lease.property_address ?? '',
-      amount: lease.rent_amount,
-      currency: lease.currency,
+      amount: lease.rent_amount ?? 0,
+      currency: lease.currency ?? 'ARS',
       period: validated.period,
       date: dateStr,
       receiptId,
@@ -61,14 +71,19 @@ export async function createReceipt(formData: ReceiptInput) {
     })
     const pdfBuffer = await renderToBuffer(pdfElement as any)
 
-    // Subir PDF a Supabase Storage
+    // Subir PDF a Supabase Storage (con retry por transient errors)
     const fileName = `${accountId}/${receiptId}.pdf`
-    const { error: uploadError } = await adminSupabase.storage
-      .from('receipts')
-      .upload(fileName, pdfBuffer, {
-        contentType: 'application/pdf',
-        upsert: false,
-      })
+    let uploadError: Error | null = null
+    try {
+      await withRetry(async () => {
+        const result = await adminSupabase.storage
+          .from('receipts')
+          .upload(fileName, pdfBuffer, { contentType: 'application/pdf', upsert: false })
+        if (result.error) throw result.error
+      }, { maxRetries: 2, initialDelayMs: 500 })
+    } catch (err) {
+      uploadError = err instanceof Error ? err : new Error(String(err))
+    }
 
     if (uploadError) {
       logger.error('Failed to upload PDF', { error: uploadError.message })
@@ -87,15 +102,15 @@ export async function createReceipt(formData: ReceiptInput) {
       id: receiptId,
       account_id: accountId,
       lease_id: validated.lease_id,
-      property_id: lease.property_id,
-      tenant_id: lease.tenant_id,
+      property_id: lease.property_id!,
+      tenant_id: lease.tenant_id!,
       period: validated.period,
       status: 'generated',
       snapshot_tenant_name: lease.tenant_name ?? '',
-      snapshot_tenant_dni_cuit: null,
+      snapshot_tenant_dni_cuit: tenantData?.dni_cuit ?? null,
       snapshot_property_address: lease.property_address ?? '',
-      snapshot_amount: lease.rent_amount,
-      snapshot_currency: lease.currency,
+      snapshot_amount: lease.rent_amount ?? 0,
+      snapshot_currency: lease.currency ?? 'ARS',
       storage_path: fileName,
       pdf_url: pdfUrl ?? null,
       email_sent: false,
@@ -122,16 +137,19 @@ export async function createReceipt(formData: ReceiptInput) {
     // Enviar email si el inquilino tiene email y el PDF se generó correctamente
     if (lease.tenant_email && pdfUrl) {
       try {
-        await sendReceiptEmail({
-          to: lease.tenant_email,
-          recipientName: lease.tenant_name ?? '',
-          period: validated.period,
-          amount: lease.rent_amount,
-          currency: lease.currency,
-          pdfUrl,
-          userId: user.id,
-          description: validated.description || null,
-        })
+        await withRetry(
+          () => sendReceiptEmail({
+            to: lease.tenant_email!,
+            recipientName: lease.tenant_name ?? '',
+            period: validated.period,
+            amount: lease.rent_amount ?? 0,
+            currency: lease.currency ?? 'ARS',
+            pdfUrl,
+            userId: user.id,
+            description: validated.description || null,
+          }),
+          { maxRetries: 2, initialDelayMs: 1000 }
+        )
 
         await supabase
           .from('receipts')

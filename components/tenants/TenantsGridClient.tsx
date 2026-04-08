@@ -8,6 +8,24 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { motion } from 'framer-motion'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragStartEvent,
+  DragOverlay,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 interface TenantRow {
   id: string
@@ -25,13 +43,116 @@ interface Props {
   isArchived?: boolean
 }
 
+// ─── Visual card (shared between inline and overlay) ─────────────────────────
+
+function TenantCard({ tenant, isOverlay = false }: { tenant: TenantRow; isOverlay?: boolean }) {
+  return (
+    <Card
+      className={`transition-all group h-full ${
+        isOverlay
+          ? 'shadow-2xl ring-2 ring-primary/30 cursor-grabbing'
+          : 'hover:shadow-lg cursor-grab'
+      }`}
+    >
+      <CardContent className="pt-6">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold truncate group-hover:text-primary transition-colors">
+              {tenant.full_name}
+            </h3>
+          </div>
+          <div className="rounded-full bg-primary/10 p-2 ml-3 shrink-0">
+            <Users className="h-4 w-4 text-primary" />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          {tenant.email && (
+            <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+              <Mail className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{tenant.email}</span>
+            </p>
+          )}
+          {tenant.phone && (
+            <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+              <Phone className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{tenant.phone}</span>
+            </p>
+          )}
+        </div>
+
+        <p className="mt-4 text-xs text-muted-foreground">
+          Agregado el {new Date(tenant.created_at).toLocaleDateString('es-AR')}
+        </p>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ─── Sortable wrapper per card ────────────────────────────────────────────────
+
+function SortableTenantCard({ tenant, isArchived }: { tenant: TenantRow; isArchived: boolean }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: tenant.id,
+  })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.35 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  }
+
+  const card = <TenantCard tenant={tenant} />
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      {isArchived ? card : (
+        <Link href={`/tenants/${tenant.id}`} draggable={false}>
+          {card}
+        </Link>
+      )}
+    </div>
+  )
+}
+
+// ─── Main grid component ──────────────────────────────────────────────────────
+
 export function TenantsGridClient({ tenants, total, currentPage, limit, isArchived = false }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
   const [search, setSearch] = useState(searchParams.get('q') ?? '')
+  const [items, setItems] = useState<TenantRow[]>(tenants)
+  const [activeId, setActiveId] = useState<string | null>(null)
 
+  const activeTenant = items.find((t) => t.id === activeId) ?? null
   const totalPages = Math.ceil(total / limit)
+
+  // Long press activation: 250ms hold starts drag, short press = click/navigate
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { delay: 250, tolerance: 5 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 250, tolerance: 5 },
+    })
+  )
+
+  const handleDragStart = ({ active }: DragStartEvent) => {
+    setActiveId(active.id as string)
+  }
+
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    setActiveId(null)
+    if (over && active.id !== over.id) {
+      setItems((prev) => {
+        const oldIndex = prev.findIndex((t) => t.id === active.id)
+        const newIndex = prev.findIndex((t) => t.id === over.id)
+        return arrayMove(prev, oldIndex, newIndex)
+      })
+    }
+  }
 
   const handleSearch = (value: string) => {
     setSearch(value)
@@ -70,73 +191,48 @@ export function TenantsGridClient({ tenants, total, currentPage, limit, isArchiv
         </div>
       )}
 
-      <motion.div
-        className={`grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 ${isPending ? 'opacity-50' : ''}`}
-        initial="hidden"
-        animate="visible"
-        variants={{
-          hidden: { opacity: 0 },
-          visible: {
-            opacity: 1,
-            transition: {
-              staggerChildren: 0.05
-            }
-          }
-        }}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
       >
-        {tenants.map((tenant) => (
+        <SortableContext items={items.map((t) => t.id)} strategy={rectSortingStrategy}>
           <motion.div
-            key={tenant.id}
+            className={`grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 ${isPending ? 'opacity-50' : ''}`}
+            initial="hidden"
+            animate="visible"
             variants={{
-              hidden: { opacity: 0, y: 20 },
-              visible: { opacity: 1, y: 0 }
+              hidden: { opacity: 0 },
+              visible: { opacity: 1, transition: { staggerChildren: 0.05 } },
             }}
           >
-            <Link href={`/tenants/${tenant.id}`}>
+            {items.map((tenant) => (
               <motion.div
-                whileHover={{ scale: 1.02, y: -4 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                key={tenant.id}
+                variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
+                layout
               >
-                <Card className="hover:shadow-lg transition-shadow group cursor-pointer h-full">
-                  <CardContent className="pt-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold truncate group-hover:text-primary transition-colors">
-                          {tenant.full_name}
-                        </h3>
-                      </div>
-                      <div className="rounded-full bg-primary/10 p-2 ml-3 shrink-0">
-                        <Users className="h-4 w-4 text-primary" />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      {tenant.email && (
-                        <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                          <Mail className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate">{tenant.email}</span>
-                        </p>
-                      )}
-                      {tenant.phone && (
-                        <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                          <Phone className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate">{tenant.phone}</span>
-                        </p>
-                      )}
-                    </div>
-
-                    <p className="mt-4 text-xs text-muted-foreground">
-                      Agregado el {new Date(tenant.created_at).toLocaleDateString('es-AR')}
-                    </p>
-                  </CardContent>
-                </Card>
+                <SortableTenantCard tenant={tenant} isArchived={isArchived} />
               </motion.div>
-            </Link>
+            ))}
           </motion.div>
-        ))}
-      </motion.div>
+        </SortableContext>
 
-      {tenants.length === 0 && search && (
+        <DragOverlay dropAnimation={{ duration: 200, easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)' }}>
+          {activeTenant ? (
+            <motion.div
+              initial={{ scale: 1, rotate: 0 }}
+              animate={{ scale: 1.05, rotate: 1 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+            >
+              <TenantCard tenant={activeTenant} isOverlay />
+            </motion.div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+
+      {items.length === 0 && search && (
         <p className="text-center text-muted-foreground py-8">
           No se encontraron inquilinos para &quot;{search}&quot;
         </p>

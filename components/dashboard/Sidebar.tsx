@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect, useMemo, useCallback, memo } from 'react'
+import Image from 'next/image'
 import {
   LayoutDashboard,
   Building2,
@@ -18,9 +19,10 @@ import { useLanguage } from '@/components/providers/language-provider'
 
 interface SidebarProps {
   userEmail: string
+  avatarUrl?: string | null
 }
 
-export const Sidebar = memo(function Sidebar({ userEmail }: SidebarProps) {
+export const Sidebar = memo(function Sidebar({ userEmail, avatarUrl }: SidebarProps) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const { t } = useLanguage()
@@ -129,26 +131,37 @@ export const Sidebar = memo(function Sidebar({ userEmail }: SidebarProps) {
         })}
       </nav>
 
-      <div className={cn('border-t border-slate-200/60 dark:border-slate-700/60 p-4 bg-gradient-to-b from-transparent to-slate-50/50 dark:to-slate-900/50', collapsed && 'flex justify-center')}>
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          transition={{ duration: 0.2 }}
-        >
-          {collapsed ? (
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-xs font-medium text-white shadow-md">
-              {initials}
+      <div className={cn('border-t border-slate-200/60 dark:border-slate-700/60 p-3 bg-gradient-to-b from-transparent to-slate-50/50 dark:to-slate-900/50', collapsed ? 'flex justify-center' : '')}>
+        <Link href="/account">
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            transition={{ duration: 0.2 }}
+            className={cn('flex items-center gap-3 rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors', collapsed && 'justify-center')}
+          >
+            <div className="relative h-8 w-8 rounded-full overflow-hidden shrink-0 shadow-md ring-1 ring-slate-200 dark:ring-slate-700">
+              {avatarUrl ? (
+                <Image src={avatarUrl} alt="Avatar" fill className="object-cover" unoptimized />
+              ) : (
+                <div className="h-full w-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-xs font-medium text-white">
+                  {initials}
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-xs font-medium text-white shrink-0 shadow-md">
-                {initials}
-              </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400 truncate font-medium">
-                {userEmail}
-              </p>
-            </div>
-          )}
-        </motion.div>
+            <AnimatePresence mode="wait">
+              {!collapsed && (
+                <motion.span
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: 'auto' }}
+                  exit={{ opacity: 0, width: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="text-xs text-slate-500 dark:text-slate-400 font-medium overflow-hidden whitespace-nowrap"
+                >
+                  Mi cuenta
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        </Link>
       </div>
     </motion.aside>
   )

@@ -1,7 +1,8 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { UnauthorizedError } from '@/lib/utils/errors'
+import { UnauthorizedError, ForbiddenError } from '@/lib/utils/errors'
 import { logger } from '@/lib/utils/logger'
 import type { User } from '@supabase/supabase-js'
+import type { AccountRole } from '@/types/database.types'
 import type { ServerClient } from './server'
 
 /**
@@ -119,6 +120,31 @@ export async function getCurrentUserWithAccount(): Promise<{
   logger.info('Account auto-provisioned for existing user', { userId: user.id, accountId: newAccount.id })
 
   return { user, accountId: newAccount.id, supabase }
+}
+
+/**
+ * Verifica que el usuario tenga uno de los roles requeridos en la cuenta.
+ * Lanza ForbiddenError si no tiene permisos.
+ *
+ * Usar en Server Actions antes de cualquier mutación sensible.
+ * La DB también lo verifica vía enforce_account_role() en las RPC functions,
+ * pero este check en el action da un error claro antes de tocar la DB.
+ */
+export async function requireRole(
+  supabase: ServerClient,
+  accountId: string,
+  userId: string,
+  roles: AccountRole[]
+): Promise<void> {
+  const { data, error } = await supabase.rpc('has_account_role', {
+    p_account_id: accountId,
+    p_user_id: userId,
+    p_roles: roles as string[],
+  })
+
+  if (error || !data) {
+    throw new ForbiddenError('No tenés permisos para realizar esta acción')
+  }
 }
 
 /**

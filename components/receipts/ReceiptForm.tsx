@@ -95,8 +95,8 @@ export function ReceiptForm({ leases }: ReceiptFormProps) {
         >
           <option value="">Seleccionar contrato</option>
           {leases.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.tenant_name} — {l.property_name} ({formatCurrency(l.rent_amount, l.currency)})
+            <option key={l.id ?? ''} value={l.id ?? ''}>
+              {l.tenant_name} — {l.property_name} ({formatCurrency(l.rent_amount ?? 0, l.currency ?? 'ARS')})
             </option>
           ))}
         </select>
@@ -151,7 +151,7 @@ export function ReceiptForm({ leases }: ReceiptFormProps) {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Monto:</span>
                 <span className="font-bold text-lg">
-                  {formatCurrency(selectedLease.rent_amount, selectedLease.currency)}
+                  {formatCurrency(selectedLease.rent_amount ?? 0, selectedLease.currency ?? 'ARS')}
                 </span>
               </div>
               {selectedLease.tenant_email && (

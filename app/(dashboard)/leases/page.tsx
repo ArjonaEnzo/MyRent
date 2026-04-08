@@ -100,7 +100,7 @@ export default async function LeasesPage({
                   </td>
                   <td className="px-4 py-3">
                     {(lease.status === 'active' || lease.status === 'ended') && (
-                      <LeaseActions leaseId={lease.id} tenantName={lease.tenant_name} status={lease.status} />
+                      <LeaseActions leaseId={lease.id!} tenantName={lease.tenant_name} status={lease.status} />
                     )}
                   </td>
                 </tr>

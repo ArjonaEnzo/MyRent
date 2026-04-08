@@ -28,6 +28,7 @@ export default async function AccountPage() {
           profile={{
             fullName: profileResult.data.full_name || '',
             email: profileResult.data.email,
+            avatarUrl: profileResult.data.avatar_url ?? null,
           }}
         />
       </div>

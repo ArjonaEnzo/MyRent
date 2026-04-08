@@ -70,7 +70,7 @@ export function LeaseActions({ leaseId, tenantName, status }: LeaseActionsProps)
           <AlertDialogHeader>
             <AlertDialogTitle>¿Dar de baja este contrato?</AlertDialogTitle>
             <AlertDialogDescription>
-              El contrato de <strong>{tenantName}</strong> pasará al estado "Finalizado".
+              El contrato de <strong>{tenantName}</strong> pasará al estado &ldquo;Finalizado&rdquo;.
               No se eliminarán los recibos existentes.
             </AlertDialogDescription>
           </AlertDialogHeader>
