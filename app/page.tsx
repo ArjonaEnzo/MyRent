@@ -55,6 +55,12 @@ export default function HomePage() {
             <ThemeToggle />
             <LanguageToggle />
             <Link
+              href="/tenant/login"
+              className="hidden sm:inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5"
+            >
+              Soy inquilino
+            </Link>
+            <Link
               href="/login"
               className="hidden sm:inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5"
             >
@@ -113,6 +119,17 @@ export default function HomePage() {
               <Link href="/login">{t.home.login}</Link>
             </Button>
           </div>
+
+          {/* Tenant portal link */}
+          <p className="text-xs text-muted-foreground pt-1">
+            ¿Sos inquilino?{' '}
+            <Link
+              href="/tenant/login"
+              className="text-emerald-600 dark:text-emerald-400 hover:underline font-medium"
+            >
+              Accedé al portal de inquilinos →
+            </Link>
+          </p>
         </motion.div>
       </section>
 

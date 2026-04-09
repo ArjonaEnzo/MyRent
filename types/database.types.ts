@@ -5,7 +5,9 @@ export type LeaseStatus = 'draft' | 'active' | 'ended' | 'cancelled'
 export type LeaseAdjustmentType = 'percentage' | 'index' | 'fixed_amount' | 'manual'
 export type LeaseAdjustmentIndex = 'ICL' | 'IPC' | 'CER' | 'CVS' | 'UVA'
 export type ReceiptStatus = 'draft' | 'generated' | 'sent' | 'signature_pending' | 'signed' | 'paid' | 'cancelled' | 'failed'
-export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'cancelled'
+/** 'processing' = async provider confirmation window; 'refunded' = provider-initiated refund */
+export type PaymentStatus = 'pending' | 'processing' | 'paid' | 'failed' | 'cancelled' | 'refunded'
+export type PaymentProvider = 'manual' | 'mercadopago' | 'stripe' | 'bank_transfer'
 export type SignatureStatus = 'pending' | 'landlord_signed' | 'fully_signed' | 'declined' | 'expired'
 
 export type PropertyImage = {
@@ -322,19 +324,84 @@ export type Database = {
           },
         ]
       }
+      payment_events: {
+        Row: {
+          account_id: string
+          created_at: string
+          event_data: Json | null
+          event_type: string
+          id: string
+          payment_id: string
+          processed_at: string | null
+          provider: string
+          provider_event_id: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          payment_id: string
+          processed_at?: string | null
+          provider: string
+          provider_event_id: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          payment_id?: string
+          processed_at?: string | null
+          provider?: string
+          provider_event_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_events_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_events_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           account_id: string
           amount: number
+          /** URL to redirect tenant to for payment completion */
+          checkout_url: string | null
           created_at: string
           currency: string
           delete_reason: string | null
           deleted_at: string | null
           deleted_by: string | null
+          /** Our reference ID sent to the provider (e.g., Mercado Pago external_reference) */
+          external_reference: string | null
           id: string
+          /** Auth user who initiated this payment (tenant or staff) */
+          initiated_by_user_id: string | null
+          /** Provider-specific response data */
+          metadata: Json | null
           notes: string | null
           paid_at: string | null
           payment_method: string | null
+          /** Payment provider identifier ('manual', 'mercadopago', etc.) */
+          provider: string
+          /** Provider-assigned payment ID — used with provider as idempotency key */
+          provider_payment_id: string | null
+          /** Raw status from provider before mapping to canonical status */
+          provider_status: string | null
           receipt_id: string
           reference: string | null
           status: string
@@ -342,15 +409,22 @@ export type Database = {
         Insert: {
           account_id: string
           amount: number
+          checkout_url?: string | null
           created_at?: string
           currency?: string
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          external_reference?: string | null
           id?: string
+          initiated_by_user_id?: string | null
+          metadata?: Json | null
           notes?: string | null
           paid_at?: string | null
           payment_method?: string | null
+          provider?: string
+          provider_payment_id?: string | null
+          provider_status?: string | null
           receipt_id: string
           reference?: string | null
           status: string
@@ -358,15 +432,22 @@ export type Database = {
         Update: {
           account_id?: string
           amount?: number
+          checkout_url?: string | null
           created_at?: string
           currency?: string
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          external_reference?: string | null
           id?: string
+          initiated_by_user_id?: string | null
+          metadata?: Json | null
           notes?: string | null
           paid_at?: string | null
           payment_method?: string | null
+          provider?: string
+          provider_payment_id?: string | null
+          provider_status?: string | null
           receipt_id?: string
           reference?: string | null
           status?: string
@@ -765,6 +846,8 @@ export type Database = {
       tenants: {
         Row: {
           account_id: string
+          /** Links this tenant record to a Supabase Auth user for portal access. NULL until tenant accepts invite. UNIQUE on non-NULL values. */
+          auth_user_id: string | null
           created_at: string
           delete_reason: string | null
           deleted_at: string | null
@@ -778,6 +861,7 @@ export type Database = {
         }
         Insert: {
           account_id: string
+          auth_user_id?: string | null
           created_at?: string
           delete_reason?: string | null
           deleted_at?: string | null
@@ -791,6 +875,7 @@ export type Database = {
         }
         Update: {
           account_id?: string
+          auth_user_id?: string | null
           created_at?: string
           delete_reason?: string | null
           deleted_at?: string | null
@@ -1534,8 +1619,16 @@ export type Database = {
         Args: { p_account_id: string; p_roles: string[]; p_user_id: string }
         Returns: boolean
       }
+      get_tenant_id_for_user: {
+        Args: Record<PropertyKey, never>
+        Returns: string | null
+      }
       is_account_member: {
         Args: { target_account_id: string }
+        Returns: boolean
+      }
+      is_tenant_user: {
+        Args: Record<PropertyKey, never>
         Returns: boolean
       }
       issue_receipt:

@@ -10,6 +10,11 @@ const envSchema = z.object({
   // HelloSign (Dropbox Sign) - Opcional (solo si usas firmas digitales)
   HELLOSIGN_API_KEY: z.string().min(1).optional(),
   HELLOSIGN_CLIENT_ID: z.string().min(1).optional(),
+  // Mercado Pago - Opcional (habilita pagos online de inquilinos)
+  // Access Token: https://www.mercadopago.com.ar/developers/es/docs/checkout-pro/additional-content/your-integrations/credentials
+  MERCADOPAGO_ACCESS_TOKEN: z.string().min(1).optional(),
+  // Webhook Secret: generado en Tus integraciones → Webhooks → agregar URL
+  MERCADOPAGO_WEBHOOK_SECRET: z.string().min(1).optional(),
 })
 
 export const env = envSchema.parse({
@@ -21,4 +26,6 @@ export const env = envSchema.parse({
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   HELLOSIGN_API_KEY: process.env.HELLOSIGN_API_KEY,
   HELLOSIGN_CLIENT_ID: process.env.HELLOSIGN_CLIENT_ID,
+  MERCADOPAGO_ACCESS_TOKEN: process.env.MERCADOPAGO_ACCESS_TOKEN,
+  MERCADOPAGO_WEBHOOK_SECRET: process.env.MERCADOPAGO_WEBHOOK_SECRET,
 })

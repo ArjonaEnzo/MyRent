@@ -119,6 +119,52 @@ export async function login(formData: LoginInput) {
   }
 }
 
+/**
+ * Login para inquilinos — redirige a /tenant/dashboard en lugar del dashboard de propietario.
+ * Idéntico al flujo de `login` pero con destino diferente.
+ */
+export async function tenantLogin(formData: LoginInput) {
+  try {
+    const validatedData = loginSchema.parse(formData)
+    const supabase = await createClient()
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: validatedData.email,
+      password: validatedData.password,
+    })
+
+    if (error) {
+      logger.error('Tenant login failed', { error: error.message })
+
+      if (error.message.includes('Invalid login credentials')) {
+        return { success: false, error: 'Email o contraseña incorrectos' }
+      }
+      if (error.message.includes('Email not confirmed')) {
+        return { success: false, error: 'Debes confirmar tu email antes de iniciar sesión' }
+      }
+      return { success: false, error: error.message }
+    }
+
+    logger.info('Tenant logged in successfully', {
+      userId: data.user?.id,
+      email: validatedData.email,
+    })
+
+    redirect('/tenant/dashboard')
+
+  } catch (error) {
+    if (isRedirectError(error)) throw error
+
+    logError(error, { action: 'tenantLogin' })
+
+    if (error instanceof z.ZodError) {
+      return { success: false, error: 'Datos inválidos', errors: error.errors }
+    }
+
+    return { success: false, error: 'Error al iniciar sesión. Intenta de nuevo.' }
+  }
+}
+
 export async function logout() {
   try {
     const supabase = await createClient()

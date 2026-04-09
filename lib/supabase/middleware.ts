@@ -60,16 +60,35 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Proteger rutas del dashboard
-  if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
+  const pathname = request.nextUrl.pathname
+
+  // ── Protect owner/staff dashboard ──────────────────────────────────────────
+  // Any unauthenticated access to /dashboard/* redirects to /login.
+  // Role validation (owner / admin / etc.) happens inside pages and actions.
+  if (!user && pathname.startsWith('/dashboard')) {
     const redirectUrl = new URL('/login', request.url)
-    redirectUrl.searchParams.set('redirect', request.nextUrl.pathname)
+    redirectUrl.searchParams.set('redirect', pathname)
     return NextResponse.redirect(redirectUrl)
   }
 
-  // Redirigir usuarios autenticados que intentan acceder a login/signup
-  if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup')) {
+  // ── Protect tenant portal ───────────────────────────────────────────────────
+  // Any unauthenticated access to /tenant/* redirects to /tenant/login.
+  // Whether the authenticated user is actually a tenant is checked inside
+  // the page via getCurrentTenant() — middleware only enforces authentication.
+  if (!user && pathname.startsWith('/tenant') && pathname !== '/tenant/login') {
+    const redirectUrl = new URL('/tenant/login', request.url)
+    redirectUrl.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(redirectUrl)
+  }
+
+  // ── Redirect authenticated users away from auth pages ──────────────────────
+  // Staff users go to the owner dashboard; tenant portal has its own login.
+  if (user && (pathname === '/login' || pathname === '/signup')) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  if (user && pathname === '/tenant/login') {
+    return NextResponse.redirect(new URL('/tenant/dashboard', request.url))
   }
 
   return response
