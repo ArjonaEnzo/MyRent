@@ -11,7 +11,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import type { Database } from '@/types/database.types'
-import { formatCurrency, formatPeriod, formatDate } from '@/lib/utils/format'
+import { formatPeriod, formatDate } from '@/lib/utils/format'
 
 type LeaseOverview = Database['public']['Views']['leases_overview']['Row']
 type ReceiptRow = Database['public']['Tables']['receipts']['Row']
