@@ -11,19 +11,12 @@ import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Card, CardContent } from '@/components/ui/card'
 import type { Database } from '@/types/database.types'
+import { formatCurrency } from '@/lib/utils/format'
 
 type LeaseOverview = Database['public']['Views']['leases_overview']['Row']
 
 interface ReceiptFormProps {
   leases: LeaseOverview[]
-}
-
-function formatCurrency(amount: number, currency: string) {
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: currency === 'ARS' ? 0 : 2,
-  }).format(amount)
 }
 
 function getCurrentPeriod() {

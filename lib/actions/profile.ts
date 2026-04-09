@@ -36,12 +36,15 @@ export async function uploadAvatar(
     const supabase = await createClient()
 
     // Ensure the avatars bucket exists (creates it if not, safe to call always)
-    await adminSupabase.storage.createBucket('avatars', {
+    const { error: bucketError } = await adminSupabase.storage.createBucket('avatars', {
       public: true,
       fileSizeLimit: 2 * 1024 * 1024,
       allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
     })
-    // Ignore error — it just means the bucket already exists
+    // "Bucket already exists" es el único error esperado — cualquier otro merece log
+    if (bucketError && !bucketError.message.toLowerCase().includes('already exists')) {
+      logger.warn('Avatar bucket creation failed unexpectedly', { error: bucketError.message })
+    }
 
     const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
     const path = `${user.id}/avatar.${ext}`

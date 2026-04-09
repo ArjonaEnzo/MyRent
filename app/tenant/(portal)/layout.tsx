@@ -15,34 +15,21 @@ export default async function TenantPortalLayout({
   }
 
   return (
-    <div className="min-h-screen" style={{ background: '#080E1A' }}>
+    <div className="min-h-screen bg-[#080E1A]">
 
       {/* ── Top bar ── */}
-      <header
-        className="sticky top-0 z-50 border-b"
-        style={{
-          background: 'rgba(8, 14, 26, 0.85)',
-          backdropFilter: 'blur(12px)',
-          borderColor: 'rgba(255,255,255,0.06)',
-        }}
-      >
+      <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-[rgba(8,14,26,0.85)] backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-5">
           {/* Logo */}
           <div className="flex items-center gap-2.5">
-            <div
-              className="flex h-7 w-7 items-center justify-center rounded-lg"
-              style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
-            >
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600">
               <Home className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
             </div>
             <div className="flex items-baseline gap-1.5">
               <span className="text-sm font-bold tracking-tight text-white">
-                My<span style={{ color: '#10b981' }}>Rent</span>
+                My<span className="text-emerald-500">Rent</span>
               </span>
-              <span
-                className="hidden text-xs sm:block"
-                style={{ color: 'rgba(255,255,255,0.3)' }}
-              >
+              <span className="hidden text-xs text-white/30 sm:block">
                 / Inquilino
               </span>
             </div>
@@ -50,10 +37,7 @@ export default async function TenantPortalLayout({
 
           {/* Right */}
           <div className="flex items-center gap-3">
-            <span
-              className="hidden text-xs sm:block"
-              style={{ color: 'rgba(255,255,255,0.4)' }}
-            >
+            <span className="hidden text-xs text-white/40 sm:block">
               {session.user.email}
             </span>
             <LogoutButton />

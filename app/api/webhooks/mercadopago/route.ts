@@ -80,9 +80,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET
 
   if (!secret) {
-    // Si no hay secret configurado, solo loguear (entorno de desarrollo sin webhook real).
-    // En producción esto DEBE estar configurado.
-    logger.warn('MP webhook: MERCADOPAGO_WEBHOOK_SECRET no configurado — saltando verificación')
+    if (process.env.NODE_ENV === 'production') {
+      // En producción es obligatorio. Sin secret no podemos verificar autenticidad.
+      logger.error('MP webhook: MERCADOPAGO_WEBHOOK_SECRET no configurado en producción — rechazando')
+      return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 401 })
+    }
+    // En desarrollo, permitir sin verificación (MP no puede firmar requests locales).
+    logger.warn('MP webhook: MERCADOPAGO_WEBHOOK_SECRET no configurado — saltando verificación (solo desarrollo)')
   } else if (!xSignature || !xRequestId) {
     logger.error('MP webhook: headers x-signature o x-request-id ausentes')
     return NextResponse.json({ error: 'Missing signature headers' }, { status: 401 })
@@ -124,7 +128,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       error: err instanceof Error ? err.message : String(err),
     })
     // Devolver 500 para que MP reintente con backoff exponencial
-    return NextResponse.json({ error: 'Failed to fetch payment details' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Failed to fetch payment details' },
+      { status: 500, headers: { 'Retry-After': '60' } }
+    )
   }
 
   logger.info('MP pago obtenido', {
@@ -188,7 +195,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       mpPaymentId: mpPayment.id,
     })
     // 500 → MP reintentará con backoff exponencial
-    return NextResponse.json({ error: 'Processing failed' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Processing failed' },
+      { status: 500, headers: { 'Retry-After': '60' } }
+    )
   }
 
   if (result.duplicate) {

@@ -157,7 +157,12 @@ export async function getProperties(options?: {
     .is('deleted_at', null)
 
   if (options?.search) {
-    query = query.or(`name.ilike.%${options.search}%,address.ilike.%${options.search}%`)
+    // Sanitizar caracteres especiales del parser de PostgREST (.or string)
+    // , ( ) tienen significado especial y romperían el filtro si vienen del usuario.
+    const safeSearch = options.search.replace(/[,()\\.]/g, ' ').trim()
+    if (safeSearch) {
+      query = query.or(`name.ilike.%${safeSearch}%,address.ilike.%${safeSearch}%`)
+    }
   }
 
   const { data, error, count } = await query
@@ -374,7 +379,7 @@ export async function deletePropertyImage(propertyId: string, imageId: string) {
       .select('storage_path, is_cover')
       .eq('id', validImageId)
       .eq('account_id', accountId)
-      .single()
+      .maybeSingle()
 
     if (!img) return { success: false, error: 'Imagen no encontrada' }
 
@@ -389,7 +394,7 @@ export async function deletePropertyImage(propertyId: string, imageId: string) {
         .eq('account_id', accountId)
         .order('position')
         .limit(1)
-        .single()
+        .maybeSingle()
 
       if (next) {
         await supabase.from('property_images').update({ is_cover: true }).eq('id', next.id)

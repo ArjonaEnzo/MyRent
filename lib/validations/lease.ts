@@ -9,14 +9,18 @@ export const leaseSchema = z.object({
     .uuid('Inquilino inválido'),
   start_date: z
     .string({ required_error: 'La fecha de inicio es requerida' })
-    .min(1, 'La fecha de inicio es requerida'),
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha debe tener formato YYYY-MM-DD')
+    .refine((d) => !isNaN(Date.parse(d)), 'La fecha de inicio no es válida'),
   end_date: z
     .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha debe tener formato YYYY-MM-DD')
+    .refine((d) => !isNaN(Date.parse(d)), 'La fecha de fin no es válida')
     .optional()
     .or(z.literal('')),
   rent_amount: z
     .number({ required_error: 'El monto es requerido' })
-    .positive('El monto debe ser mayor a 0'),
+    .positive('El monto debe ser mayor a 0')
+    .max(999_999_999, 'El monto ingresado es demasiado alto'),
   currency: z.enum(['ARS', 'USD'], {
     required_error: 'La moneda es requerida',
   }),
@@ -50,6 +54,17 @@ export const leaseSchema = z.object({
     .optional()
     .nullable(),
 }).superRefine((data, ctx) => {
+  // Validar que end_date sea posterior a start_date
+  if (data.end_date && data.end_date !== '' && data.start_date) {
+    if (new Date(data.end_date) <= new Date(data.start_date)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'La fecha de fin debe ser posterior a la fecha de inicio',
+        path: ['end_date'],
+      })
+    }
+  }
+
   if (data.adjustment_type === 'none') return
 
   if (!data.adjustment_frequency_months) {
@@ -89,7 +104,10 @@ export type LeaseInput = z.infer<typeof leaseSchema>
 
 export const leaseAdjustmentSchema = z.object({
   lease_id: z.string().uuid(),
-  effective_date: z.string().min(1, 'La fecha es requerida'),
+  effective_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha debe tener formato YYYY-MM-DD')
+    .refine((d) => !isNaN(Date.parse(d)), 'La fecha no es válida'),
   new_amount: z.number().positive('El nuevo monto debe ser mayor a 0'),
   adjustment_type: z.enum(['percentage', 'index', 'fixed_amount', 'manual']),
   adjustment_value: z.number().optional().nullable(),

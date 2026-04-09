@@ -19,6 +19,7 @@ import React from 'react'
 import { receiptRateLimit } from '@/lib/utils/rate-limit'
 import { validateId } from '@/lib/validations/common'
 import { withRetry } from '@/lib/utils/retry'
+import { getLease } from '@/lib/actions/leases'
 
 export async function createReceipt(formData: ReceiptInput) {
   try {
@@ -30,14 +31,9 @@ export async function createReceipt(formData: ReceiptInput) {
     const adminSupabase = createAdminClient()
 
     // Obtener datos del contrato (incluye tenant, property, monto)
-    const { data: lease, error: leaseError } = await supabase
-      .from('leases_overview')
-      .select('*')
-      .eq('id', validated.lease_id)
-      .eq('account_id', accountId)
-      .single()
+    const lease = await getLease(validated.lease_id)
 
-    if (leaseError || !lease) {
+    if (!lease) {
       return { success: false, error: 'Contrato no encontrado' }
     }
 

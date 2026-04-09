@@ -11,26 +11,12 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import type { Database } from '@/types/database.types'
+import { formatCurrency, formatPeriod, formatDate } from '@/lib/utils/format'
 
 type LeaseOverview = Database['public']['Views']['leases_overview']['Row']
 type ReceiptRow = Database['public']['Tables']['receipts']['Row']
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-
-function formatPeriod(period: string): string {
-  const [year, month] = period.split('-')
-  const date = new Date(Number(year), Number(month) - 1)
-  return date.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('es-AR', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
-}
-
+// Formatea solo el número (sin símbolo de moneda) — la UI muestra el símbolo por separado
 function formatAmount(amount: number): string {
   return new Intl.NumberFormat('es-AR', {
     minimumFractionDigits: 0,
@@ -109,34 +95,25 @@ export default async function TenantDashboardPage() {
   // ── Render ──────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-8" style={{ color: '#e2e8f0' }}>
+    <div className="space-y-8 text-slate-200">
 
       {/* ── Summary hero ── */}
       {pendingReceipts.length > 0 && (
-        <div
-          className="relative overflow-hidden rounded-2xl p-6"
-          style={{
-            background: 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(5,150,105,0.08) 100%)',
-            border: '1px solid rgba(16,185,129,0.2)',
-          }}
-        >
+        <div className="relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/15 to-emerald-600/[0.08] p-6">
           {/* Decorative glow */}
-          <div
-            className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full"
-            style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.15) 0%, transparent 70%)' }}
-          />
-          <p className="text-xs font-medium uppercase tracking-widest" style={{ color: 'rgba(52,211,153,0.7)' }}>
+          <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.15)_0%,transparent_70%)]" />
+          <p className="text-xs font-medium uppercase tracking-widest text-emerald-400/70">
             Total pendiente
           </p>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-sm font-medium" style={{ color: 'rgba(52,211,153,0.6)' }}>
+            <span className="text-sm font-medium text-emerald-400/60">
               {pendingCurrency}
             </span>
             <span className="text-4xl font-bold tabular-nums tracking-tight text-white">
               {formatAmount(totalPending)}
             </span>
           </div>
-          <p className="mt-1 text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          <p className="mt-1 text-xs text-white/35">
             {pendingReceipts.length === 1
               ? '1 recibo sin pagar'
               : `${pendingReceipts.length} recibos sin pagar`}
@@ -155,11 +132,7 @@ export default async function TenantDashboardPage() {
             {(leases as LeaseOverview[]).map((lease) => (
               <div
                 key={lease.id}
-                className="rounded-2xl p-5"
-                style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.07)',
-                }}
+                className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-5"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
@@ -167,7 +140,7 @@ export default async function TenantDashboardPage() {
                       {lease.property_name ?? 'Propiedad'}
                     </p>
                     {lease.property_address && (
-                      <p className="mt-0.5 flex items-center gap-1 text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                      <p className="mt-0.5 flex items-center gap-1 text-xs text-white/40">
                         <MapPin className="h-3 w-3 shrink-0" />
                         {lease.property_address}
                       </p>
@@ -177,16 +150,13 @@ export default async function TenantDashboardPage() {
                     <p className="text-xl font-bold tabular-nums text-white">
                       {formatAmount(lease.rent_amount ?? 0)}
                     </p>
-                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                    <p className="text-xs text-white/35">
                       {lease.currency ?? 'ARS'}/mes
                     </p>
                   </div>
                 </div>
 
-                <div
-                  className="mt-4 flex items-center gap-1.5 text-xs"
-                  style={{ color: 'rgba(255,255,255,0.35)' }}
-                >
+                <div className="mt-4 flex items-center gap-1.5 text-xs text-white/35">
                   <CalendarDays className="h-3.5 w-3.5" />
                   <span>
                     Desde {formatDate(lease.start_date as string)}
@@ -216,11 +186,7 @@ export default async function TenantDashboardPage() {
             {(pendingReceipts as ReceiptRow[]).map((receipt) => (
               <div
                 key={receipt.id}
-                className="rounded-2xl p-5"
-                style={{
-                  background: 'rgba(245,158,11,0.04)',
-                  border: '1px solid rgba(245,158,11,0.15)',
-                }}
+                className="rounded-2xl border border-amber-500/15 bg-amber-500/[0.04] p-5"
               >
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">
@@ -235,28 +201,20 @@ export default async function TenantDashboardPage() {
                     <p className="text-xl font-bold tabular-nums text-white">
                       {formatAmount(receipt.snapshot_amount)}
                     </p>
-                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                    <p className="text-xs text-white/35">
                       {receipt.snapshot_currency}
                     </p>
                   </div>
                 </div>
 
                 {(receipt.pdf_url || mpEnabled) && (
-                  <div
-                    className="mt-4 flex items-center gap-3 border-t pt-4"
-                    style={{ borderColor: 'rgba(245,158,11,0.1)' }}
-                  >
+                  <div className="mt-4 flex items-center gap-3 border-t border-amber-500/10 pt-4">
                     {receipt.pdf_url && (
                       <a
                         href={receipt.pdf_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all hover:opacity-80"
-                        style={{
-                          color: 'rgba(255,255,255,0.6)',
-                          background: 'rgba(255,255,255,0.05)',
-                          border: '1px solid rgba(255,255,255,0.08)',
-                        }}
+                        className="flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.05] px-3 py-1.5 text-xs font-medium text-white/60 transition-all hover:opacity-80"
                       >
                         <FileText className="h-3 w-3" />
                         Ver PDF
@@ -282,31 +240,21 @@ export default async function TenantDashboardPage() {
       {paidReceipts.length > 0 && (
         <section>
           <SectionHeader icon={CheckCircle2} title="Historial de pagos" />
-          <div
-            className="overflow-hidden rounded-2xl"
-            style={{
-              background: 'rgba(255,255,255,0.025)',
-              border: '1px solid rgba(255,255,255,0.06)',
-            }}
-          >
+          <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.025]">
             {(paidReceipts as ReceiptRow[]).map((receipt) => (
               <div
                 key={receipt.id}
-                className="flex items-center justify-between px-5 py-4 border-t"
-                style={{ borderColor: 'rgba(255,255,255,0.05)' }}
+                className="flex items-center justify-between border-t border-white/[0.05] px-5 py-4"
               >
                 <div className="flex items-center gap-3">
-                  <div
-                    className="flex h-8 w-8 items-center justify-center rounded-full"
-                    style={{ background: 'rgba(16,185,129,0.12)' }}
-                  >
-                    <CheckCircle2 className="h-4 w-4" style={{ color: '#10b981' }} />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/[0.12]">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                   </div>
                   <div>
                     <p className="text-sm font-medium capitalize text-white">
                       {formatPeriod(receipt.period)}
                     </p>
-                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                    <p className="text-xs text-white/35">
                       Pagado
                     </p>
                   </div>
@@ -320,8 +268,7 @@ export default async function TenantDashboardPage() {
                       href={receipt.pdf_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ color: 'rgba(255,255,255,0.25)' }}
-                      className="hover:opacity-70 transition-opacity"
+                      className="text-white/25 transition-opacity hover:opacity-70"
                     >
                       <ChevronRight className="h-4 w-4" />
                     </a>
@@ -350,15 +297,12 @@ function SectionHeader({
 }) {
   return (
     <div className="mb-4 flex items-center gap-2">
-      <Icon className="h-4 w-4" style={{ color: 'rgba(255,255,255,0.3)' }} />
-      <h2 className="text-sm font-semibold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.5)' }}>
+      <Icon className="h-4 w-4 text-white/30" />
+      <h2 className="text-sm font-semibold uppercase tracking-widest text-white/50">
         {title}
       </h2>
       {badge !== undefined && (
-        <span
-          className="flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold"
-          style={{ background: '#f59e0b', color: '#000' }}
-        >
+        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-black">
           {badge}
         </span>
       )}
@@ -368,17 +312,9 @@ function SectionHeader({
 
 function EmptyState({ message, check }: { message: string; check?: boolean }) {
   return (
-    <div
-      className="flex items-center gap-3 rounded-2xl px-5 py-4"
-      style={{
-        background: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.05)',
-      }}
-    >
-      {check && <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: '#10b981' }} />}
-      <p className="text-sm" style={{ color: 'rgba(255,255,255,0.35)' }}>
-        {message}
-      </p>
+    <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.02] px-5 py-4">
+      {check && <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />}
+      <p className="text-sm text-white/35">{message}</p>
     </div>
   )
 }

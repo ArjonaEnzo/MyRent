@@ -23,6 +23,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { formatCurrency } from '@/lib/utils/format'
 
 interface ReceiptRow {
   id: string
@@ -35,13 +36,6 @@ interface ReceiptRow {
   created_at: string
 }
 
-function formatCurrency(amount: number, currency: string) {
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: currency === 'ARS' ? 0 : 2,
-  }).format(amount)
-}
 
 interface Props {
   receipts: ReceiptRow[]
