@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { signupSchema, loginSchema, type SignupInput, type LoginInput } from '@/lib/validations/auth'
 import { redirect } from 'next/navigation'
 import { logger, logError } from '@/lib/utils/logger'
-import { isRedirectError } from 'next/dist/client/components/redirect'
+import { isRedirectError } from 'next/dist/client/components/redirect-error'
 import { z } from 'zod'
 
 export async function signup(formData: SignupInput) {

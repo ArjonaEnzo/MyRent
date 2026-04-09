@@ -9,7 +9,7 @@ type Receipt = Database['public']['Tables']['receipts']['Row']
 type ReceiptWithTenant = Receipt & { tenants: { full_name: string; email: string | null } | null }
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { isRedirectError } from 'next/dist/client/components/redirect'
+import { isRedirectError } from 'next/dist/client/components/redirect-error'
 import { logger, logError } from '@/lib/utils/logger'
 import { z } from 'zod'
 import { renderToBuffer } from '@react-pdf/renderer'

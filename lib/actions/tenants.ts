@@ -7,7 +7,7 @@ import type { Database } from '@/types/database.types'
 type Tenant = Database['public']['Tables']['tenants']['Row']
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { isRedirectError } from 'next/dist/client/components/redirect'
+import { isRedirectError } from 'next/dist/client/components/redirect-error'
 import { logger, logError } from '@/lib/utils/logger'
 import { z } from 'zod'
 import { propertyRateLimit } from '@/lib/utils/rate-limit'

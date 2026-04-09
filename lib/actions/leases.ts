@@ -8,7 +8,7 @@ type LeaseOverview = Database['public']['Views']['leases_overview']['Row']
 type LeaseAdjustment = Database['public']['Tables']['lease_adjustments']['Row']
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { isRedirectError } from 'next/dist/client/components/redirect'
+import { isRedirectError } from 'next/dist/client/components/redirect-error'
 import { logger, logError } from '@/lib/utils/logger'
 import { z } from 'zod'
 import { validateId } from '@/lib/validations/common'

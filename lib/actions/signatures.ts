@@ -3,7 +3,7 @@
 import { getCurrentUserWithAccount } from '@/lib/supabase/auth'
 import { createSignatureRequest } from '@/lib/signatures/hellosign-client'
 import { logger, logError } from '@/lib/utils/logger'
-import { isRedirectError } from 'next/dist/client/components/redirect'
+import { isRedirectError } from 'next/dist/client/components/redirect-error'
 import { revalidatePath } from 'next/cache'
 import { validateId } from '@/lib/validations/common'
 
