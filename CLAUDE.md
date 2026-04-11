@@ -153,3 +153,27 @@ Digital signatures via HelloSign (Dropbox Sign):
 Required in `.env.local`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `NEXT_PUBLIC_APP_URL`.
 
 Optional (for digital signatures): `HELLOSIGN_API_KEY`, `HELLOSIGN_CLIENT_ID`.
+
+See `.env.example` for the full list. Copy it: `cp .env.example .env.local`.
+
+## Initial Setup
+
+Apply the single consolidated migration in Supabase SQL Editor:
+`supabase/migrations/20260404000002_views_functions_provisioning.sql`
+This creates all tables, RLS policies, views, RPCs, and the `handle_new_user()` provisioning trigger.
+
+## Key Architectural Decisions
+
+- **Multi-tenant accounts, not owner_id**: Every user belongs to an `account_users` row. All business tables use `account_id` (not `auth.uid()`). Supports multiple team members per account (owner/admin/assistant/accountant/viewer) without code changes. RLS joins through `account_users` via the `has_account_role()` SECURITY DEFINER helper.
+- **Server Actions for all mutations, API Routes only for webhooks**: External callers (HelloSign) can't send cookies, so only they use API Routes.
+- **Snapshot receipts**: Legally required immutability — tenant/property data copied into `snapshot_*` columns at creation; historical receipts are unaffected by later data changes.
+- **Lease-centric receipts**: Amount, currency, tenant, and property are read from `leases_overview` at creation — never re-entered.
+- **Soft delete enforced via RPCs**: `archive_property` and `archive_tenant` RPCs enforce business rules (can't archive a property with active leases) before setting `deleted_at`.
+- **In-memory rate limiter resets on server restart**: Switch to Upstash Redis before multi-instance deployment.
+
+## Documentation
+
+- `ARCHITECTURE.md` — Full structure, decisions, flows, deployment checklist
+- `docs/backend-contract.md` — Server Action API surface and conventions
+- `docs/db-schema.sql` — Current table definitions
+- `docs/DIGITAL_SIGNATURES_SETUP.md` — HelloSign integration guide
