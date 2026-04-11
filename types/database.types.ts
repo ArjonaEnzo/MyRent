@@ -363,6 +363,13 @@ export type Database = {
             foreignKeyName: "payment_events_account_id_fkey"
             columns: ["account_id"]
             isOneToOne: false
+            referencedRelation: "account_dashboard_overview"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "payment_events_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
             referencedRelation: "accounts"
             referencedColumns: ["id"]
           },
@@ -370,7 +377,28 @@ export type Database = {
             foreignKeyName: "payment_events_payment_id_fkey"
             columns: ["payment_id"]
             isOneToOne: false
+            referencedRelation: "active_payments_clean_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_events_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "active_payments_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_events_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
             referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_events_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments_overview"
             referencedColumns: ["id"]
           },
         ]
@@ -1551,6 +1579,7 @@ export type Database = {
         }
         Returns: {
           account_id: string
+          auth_user_id: string | null
           created_at: string
           delete_reason: string | null
           deleted_at: string | null
@@ -1615,22 +1644,16 @@ export type Database = {
         Args: { p_account_id: string; p_roles: string[]; p_user_id: string }
         Returns: undefined
       }
+      get_tenant_id_for_user: { Args: never; Returns: string }
       has_account_role: {
         Args: { p_account_id: string; p_roles: string[]; p_user_id: string }
         Returns: boolean
-      }
-      get_tenant_id_for_user: {
-        Args: Record<PropertyKey, never>
-        Returns: string | null
       }
       is_account_member: {
         Args: { target_account_id: string }
         Returns: boolean
       }
-      is_tenant_user: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      is_tenant_user: { Args: never; Returns: boolean }
       issue_receipt:
         | {
             Args: {
@@ -1731,15 +1754,22 @@ export type Database = {
         Returns: {
           account_id: string
           amount: number
+          checkout_url: string | null
           created_at: string
           currency: string
           delete_reason: string | null
           deleted_at: string | null
           deleted_by: string | null
+          external_reference: string | null
           id: string
+          initiated_by_user_id: string | null
+          metadata: Json | null
           notes: string | null
           paid_at: string | null
           payment_method: string | null
+          provider: string
+          provider_payment_id: string | null
+          provider_status: string | null
           receipt_id: string
           reference: string | null
           status: string
