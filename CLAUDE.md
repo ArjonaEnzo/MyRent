@@ -68,25 +68,37 @@ import { isRedirectError } from 'next/dist/client/components/redirect'
 - `apply_lease_adjustment` — atomically updates `lease_adjustments` + `leases.rent_amount` with row lock
 - `archive_property` — soft-delete with audit log in one transaction
 - `has_account_role` — role verification (called by `requireRole`)
+- `register_payment()` — staff manual payment registration (called by `registerManualPayment()` action)
+- `is_tenant_user()` / `get_tenant_id_for_user()` — SECURITY DEFINER helpers for tenant RLS and session resolution
 
 **Storage operations** require `createAdminClient()` (service-role) to bypass RLS. Images are stored in the `property-images` bucket at path `{accountId}/{propertyId}/{uuid}.{ext}` with 5-year signed URLs. Max 6 images per property.
 
 ### Key Layers
 
-- **`lib/supabase/`** — Three client factories: `client.ts` (browser), `server.ts` (Server Components/Actions with `createClient()` and `createAdminClient()` for service-role operations), `middleware.ts` (session refresh).
-- **`lib/actions/`** — Server Actions for auth, properties, tenants, leases, receipts, signatures, profile. All marked `'use server'`.
-- **`lib/validations/`** — Zod schemas mirroring each entity (auth, property, tenant, lease, receipt, profile, common).
+- **`lib/supabase/`** — Three client factories: `client.ts` (browser), `server.ts` (Server Components/Actions with `createClient()` and `createAdminClient()` for service-role operations), `middleware.ts` (session refresh). Also `tenant-auth.ts` for tenant-specific session helpers.
+- **`lib/actions/`** — Server Actions for auth, properties, tenants, leases, receipts, signatures, payments, profile. All marked `'use server'`.
+- **`lib/validations/`** — Zod schemas mirroring each entity (auth, property, tenant, lease, receipt, profile, common, payment).
 - **`lib/utils/`** — Custom error classes (`AppError` hierarchy with status codes), logger, in-memory rate limiter, retry with exponential backoff.
 - **`lib/utils.ts`** — Shadcn `cn()` utility (clsx + tailwind-merge).
 - **`lib/i18n/translations.ts`** — Spanish/English UI string translations; used via `language-provider` context.
 - **`lib/pdf/receipt-template.tsx`** — React PDF component for receipt generation.
 - **`lib/email/receipt-email.ts`** — Sends receipt email via Resend with PDF download link.
 - **`lib/signatures/hellosign-client.ts`** — HelloSign (Dropbox Sign) client for digital signatures.
+- **`lib/payments/mercadopago-client.ts`** — Mercado Pago client: `createCheckoutPreference()`, `getPaymentDetails()`, `verifyWebhookSignature()`, `mapMPStatus()`. Sandbox detected by `token.startsWith('TEST-')`.
 - **`lib/env.ts`** — Zod-validated environment variables.
 - **`components/`** — Organized by domain: `ui/` (Shadcn), `dashboard/`, `properties/`, `tenants/`, `leases/`, `receipts/`, `account/`, `tenant/` (portal), `providers/`, `shared/`.
 - **`types/database.types.ts`** — Auto-generated Supabase types + hand-written domain types at the top (`AccountRole`, `LeaseStatus`, `ReceiptStatus`, etc.). Regenerate DB types with: `npx supabase gen types typescript --project-id "PROJECT_REF" > types/database.types.ts`
 - **`supabase/migrations/`** — SQL migration files for database schema changes.
-- **`docs/`** — `backend-contract.md` and `db-schema.sql` for reference.
+- **`docs/`** — `backend-contract.md` (RPC specs, view definitions, frontend rules), `db-schema.sql` (raw schema), `DIGITAL_SIGNATURES_SETUP.md` (HelloSign setup guide).
+
+### Tenant Auth (vs. Staff Auth)
+
+The tenant portal uses a **separate auth session model** from the staff dashboard:
+
+- **Staff actions**: `getCurrentUserWithAccount()` → `{ user, accountId, supabase }` — resolves via `account_users`
+- **Tenant actions**: `getCurrentTenant()` from `lib/supabase/tenant-auth.ts` → `{ user, tenantId, accountId, supabase }` — resolves via `tenants.auth_user_id = auth.uid()`
+
+Tenant-specific helpers: `getCurrentTenantOrNull()` (non-throwing), `isTenantUser()` (boolean via RPC `is_tenant_user()`). Tenants have **SELECT-only** RLS on their own records, leases, receipts, and payments.
 
 ## Multi-Account Model
 
@@ -113,7 +125,8 @@ Active tables (reflected in `types/database.types.ts`):
 | `leases`            | `id`, `account_id`, `property_id`, `tenant_id`, `status`, `rent_amount`, `currency`, `start_date`, `end_date`, adjustment config fields, soft-delete fields                              |
 | `lease_adjustments` | `id`, `account_id`, `lease_id`, `adjustment_type`, `previous_amount`, `new_amount`, `effective_date`                                                                                     |
 | `receipts`          | `id`, `account_id`, `lease_id`, `tenant_id`, `property_id`, `period` (YYYY-MM), `status`, snapshot fields, `pdf_url`, `storage_path`, `email_sent`, signature fields, soft-delete fields |
-| `payments`          | `id`, `account_id`, `receipt_id`, `amount`, `currency`, `status`, `paid_at`, soft-delete fields                                                                                          |
+| `payments`          | `id`, `account_id`, `receipt_id`, `amount`, `currency`, `status`, `paid_at`, `provider` (`manual`\|`mercadopago`), `provider_payment_id`, `provider_status`, `checkout_url`, `external_reference`, `initiated_by_user_id`, `metadata`, soft-delete fields |
+| `payment_events`    | Immutable webhook log: `provider`, `provider_event_id` (UNIQUE), `event_type`, `event_data`, `processed_at` — mirrors `signature_events` pattern, prevents double-processing             |
 | `audit_logs`        | `id`, `account_id`, `entity_type`, `entity_id`, `action`, `actor_user_id`, `metadata`                                                                                                    |
 | `signature_events`  | audit trail for HelloSign webhook events                                                                                                                                                 |
 
@@ -135,10 +148,31 @@ ReceiptStatus =
   "paid" |
   "cancelled" |
   "failed";
-PaymentStatus = "pending" | "paid" | "failed" | "cancelled";
+PaymentStatus = "pending" | "processing" | "paid" | "failed" | "cancelled" | "refunded";
 SignatureStatus =
   "pending" | "landlord_signed" | "fully_signed" | "declined" | "expired";
 ```
+
+## Mercado Pago Payment Flow (Tenant Portal)
+
+`initiateOnlinePayment(receiptId)` action (tenant auth required):
+
+1. Validate receipt belongs to tenant (RLS)
+2. Idempotency check — reuse existing `pending`/`processing` payment with `checkout_url` if present
+3. Insert `payments` record with `provider='mercadopago'`, `status='pending'`, `external_reference=payments.id`
+4. Call `createCheckoutPreference()` → returns `initPoint` (prod) or `sandboxInitPoint` (dev)
+5. Save `checkout_url` + `provider_payment_id` on the payment record
+6. Return `checkoutUrl` → client redirects tenant to Mercado Pago Checkout Pro
+
+**Webhook** (`/api/webhooks/mercadopago`):
+1. Verify HMAC-SHA256 signature via `verifyWebhookSignature()` (timing-safe; required in prod, optional in dev)
+2. Ignore non-payment events
+3. GET payment details from MP API via `getPaymentDetails(mpPaymentId)`
+4. Reconcile via `external_reference` → find our `payments` record
+5. Call `processProviderPaymentEvent()` — records in `payment_events` (UNIQUE idempotency), maps MP status → canonical status, updates `payments.status`, sets `receipts.status='paid'` if approved, logs to `audit_logs`
+6. Return 200 always (required by MP)
+
+**MP status mapping**: `approved→paid`, `in_process/authorized/in_mediation/pending→processing`, `rejected→failed`, `cancelled→cancelled`, `refunded/charged_back→refunded`
 
 ## Receipt Generation Flow
 
@@ -173,3 +207,5 @@ Digital signatures via HelloSign (Dropbox Sign):
 Required in `.env.local`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `NEXT_PUBLIC_APP_URL`.
 
 Optional (for digital signatures): `HELLOSIGN_API_KEY`, `HELLOSIGN_CLIENT_ID`.
+
+Optional (for Mercado Pago tenant payments): `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_WEBHOOK_SECRET` (required in production; if absent in dev, webhook signature verification is skipped).
