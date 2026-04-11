@@ -11,6 +11,11 @@
       "sourceType": "github",
       "computedHash": "4dd93bbc245dbec9dd18504a82b864b5d70776ac8d8abd09b1796d299a3e627e"
     },
+    "algorithmic-art": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "7c446629c20a537aba3496490550bbfddf71b3bb71904c9c0056c9daa025a330"
+    },
     "angular-migration": {
       "source": "wshobson/agents",
       "sourceType": "github",
@@ -85,6 +90,16 @@
       "source": "wshobson/agents",
       "sourceType": "github",
       "computedHash": "cfa7dabb929db47056f19de9b380da3ea1cbdb650a15352842834779f72b4e98"
+    },
+    "brand-guidelines": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "cf41642f38f35bcae5bbf59215f0ee629d5f6a54b4811454f6cb93bc9b12b69e"
+    },
+    "canvas-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "21e7c68d336893e4f2aa8d269854fd5e253c89cfc6dd0e74fa487fe7e96abdeb"
     },
     "changelog-automation": {
       "source": "wshobson/agents",
@@ -171,6 +186,16 @@
       "sourceType": "github",
       "computedHash": "488e5574edce8448e815acd8f08731259fb885d6773f57e1d7e3160c0e5e92fc"
     },
+    "doc-coauthoring": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "62cd7744438ee2aecc986c520bb603988a78ff6aaaf70a471bf4584fe0b78dae"
+    },
+    "docx": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "150be87ff7b18f273ad07da303adb1cf2ca21cc3e76db7a2cf0373405178a278"
+    },
     "dotnet-backend-patterns": {
       "source": "wshobson/agents",
       "sourceType": "github",
@@ -210,6 +235,11 @@
       "source": "wshobson/agents",
       "sourceType": "github",
       "computedHash": "1a5fe66bd2683afd1db9afdf37a25cd8b9195c369c98489333badf0406fc91b3"
+    },
+    "frontend-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "516bd2154eb843a8240e43d5b285229129853114ad7075a5e141e1c08e408c84"
     },
     "gdpr-data-handling": {
       "source": "wshobson/agents",
@@ -281,6 +311,11 @@
       "sourceType": "github",
       "computedHash": "d2e2127b91c76b2ed6706ce78bfc7eddcb6b340333f94d3d53d9f65e3253dea2"
     },
+    "internal-comms": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "6e7e5d2f3bfa91e6ce302e629ff639bc82d95d2ce3454383531093cbeb8b38b0"
+    },
     "istio-traffic-management": {
       "source": "wshobson/agents",
       "sourceType": "github",
@@ -325,6 +360,11 @@
       "source": "wshobson/agents",
       "sourceType": "github",
       "computedHash": "97924a1969616e2fa4811cb00fbd7ca943d9c7038fce4b2d2ddae8c0309c8691"
+    },
+    "mcp-builder": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "f08cbdec74dba480ec5217363446dae154b7576b8c3d9b4cb17aff234f15973b"
     },
     "memory-forensics": {
       "source": "wshobson/agents",
@@ -446,6 +486,16 @@
       "sourceType": "github",
       "computedHash": "c5300a73867f01912e4ee08c3d6812f9c6b54bc1e8e43d7aa008e2fd1d9e21db"
     },
+    "pdf": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "37226d4220d844377e6b2a386c51a011df4cd130855ff0b80bcc22f9c28abd57"
+    },
+    "playwright-best-practices": {
+      "source": "currents-dev/playwright-best-practices-skill",
+      "sourceType": "github",
+      "computedHash": "6db654e753257e642d6507d59b4fc633a2382e93429748ba0fb6817c23ef5216"
+    },
     "postgresql-table-design": {
       "source": "wshobson/agents",
       "sourceType": "github",
@@ -455,6 +505,11 @@
       "source": "wshobson/agents",
       "sourceType": "github",
       "computedHash": "d1f385274afa333e606c8ea48385064b72ec22d8cb724052d240b5397667d4fd"
+    },
+    "pptx": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "2275e4d8dba1790d52f6619b3e2fed04edc948beef545a2ad18e4a1be644426d"
     },
     "projection-patterns": {
       "source": "wshobson/agents",
@@ -616,6 +671,11 @@
       "sourceType": "github",
       "computedHash": "57d7ac78fe0f043cee38ecdef20d15915a62ffe415b5cc328bdb578dd7b262d2"
     },
+    "shadcn": {
+      "source": "shadcn/ui",
+      "sourceType": "github",
+      "computedHash": "642a177bee320618caa49f5106cadb4e7594c606e867f61ba7b56d19cf745cd5"
+    },
     "shellcheck-configuration": {
       "source": "wshobson/agents",
       "sourceType": "github",
@@ -625,6 +685,16 @@
       "source": "wshobson/agents",
       "sourceType": "github",
       "computedHash": "2f10fcb2ba7adc30b3e737e0cace9fad589e4a2aa0094debfcbf008b65e8c7b9"
+    },
+    "skill-creator": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "57f470f512f45bdac598e302bc72fd62bf2b649fc7fad032efe97720149cde4d"
+    },
+    "slack-gif-creator": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "e6ba2e516960ee584328162d2e16aa7fc7c800d807b87866c20f19c8419644f9"
     },
     "slo-implementation": {
       "source": "wshobson/agents",
@@ -701,6 +771,11 @@
       "sourceType": "github",
       "computedHash": "f0b3acb8cd2efbd38247b1b42c235a3f82afeca1eefcf7d88ff11d057cb82471"
     },
+    "template-skill": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "daf176f2cd0030d321982d3e813fd1a794a0b4744c5a92d2931a37001bb40fb9"
+    },
     "temporal-python-testing": {
       "source": "wshobson/agents",
       "sourceType": "github",
@@ -710,6 +785,11 @@
       "source": "wshobson/agents",
       "sourceType": "github",
       "computedHash": "f1cf122edb227253db47fc322b607c4f1f4841c3c4bc679a59fc072c1cacf00d"
+    },
+    "theme-factory": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "0290eabfd6fea9fcfd59c12de15e3f4046593185089956802b6d48ba1d07f428"
     },
     "threat-mitigation-mapping": {
       "source": "wshobson/agents",
@@ -781,6 +861,11 @@
       "sourceType": "github",
       "computedHash": "c26ec40131b7bc851c784bcecc3456e8fde931f38ca42aeed47ed7df6a8b05e8"
     },
+    "web-artifacts-builder": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "8506451d6d3a3494ddca091b0f0ff7a9961ddd4301df2b6264dd3f98bed75b0a"
+    },
     "web-component-design": {
       "source": "wshobson/agents",
       "sourceType": "github",
@@ -796,6 +881,11 @@
       "sourceType": "github",
       "computedHash": "5ff821ecbe7f7a862a1b34060bea6b1dc2495dbe5ed62fc7183aadaa635c6268"
     },
+    "webapp-testing": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "5a6a18c0137cfbabec058e86fc1c8f6919d846a7b2a34ee978cc8ced866ee2e5"
+    },
     "workflow-orchestration-patterns": {
       "source": "wshobson/agents",
       "sourceType": "github",
@@ -805,6 +895,11 @@
       "source": "wshobson/agents",
       "sourceType": "github",
       "computedHash": "99d92bc66b1b2132f96d8ef46cb352916f43a48e5acf5912db8b957d11459c8a"
+    },
+    "xlsx": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "cb7fba2177d0d35d14b3244272b25d1b05246e99b3468a087fe06c84193dbd20"
     }
   }
 }

@@ -57,3 +57,5 @@ Thumbs.db
 
 # Local debug scripts (may contain hardcoded credentials)
 query_db.mjs
+
+.vercel
