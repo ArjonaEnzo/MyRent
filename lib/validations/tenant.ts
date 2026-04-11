@@ -6,10 +6,9 @@ export const tenantSchema = z.object({
     .min(1, 'El nombre es requerido')
     .max(100, 'El nombre no puede exceder 100 caracteres'),
   email: z
-    .string()
-    .email('Ingresa un email válido')
-    .optional()
-    .or(z.literal('')),
+    .string({ required_error: 'El email es requerido' })
+    .min(1, 'El email es requerido')
+    .email('Ingresa un email válido'),
   phone: z
     .string()
     .max(30, 'El teléfono no puede exceder 30 caracteres')

@@ -14,9 +14,15 @@ describe('tenantSchema', () => {
     expect(result.success).toBe(true)
   })
 
-  it('acepta datos mínimos (solo nombre)', () => {
-    const result = tenantSchema.safeParse({ full_name: 'Ana García' })
+  it('acepta datos mínimos (nombre y email)', () => {
+    const result = tenantSchema.safeParse({ full_name: 'Ana García', email: 'ana@example.com' })
     expect(result.success).toBe(true)
+  })
+
+  it('rechaza inquilino sin email', () => {
+    const result = tenantSchema.safeParse({ full_name: 'Ana García' })
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0].path).toContain('email')
   })
 
   it('rechaza nombre vacío', () => {
@@ -37,9 +43,10 @@ describe('tenantSchema', () => {
     expect(result.error?.issues[0].path).toContain('email')
   })
 
-  it('acepta email vacío (campo opcional)', () => {
+  it('rechaza email vacío (campo requerido)', () => {
     const result = tenantSchema.safeParse({ ...validTenant, email: '' })
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0].path).toContain('email')
   })
 
   it('acepta phone vacío (campo opcional)', () => {

@@ -68,11 +68,12 @@ export function TenantForm({ tenant }: TenantFormProps) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="email">Email (opcional)</Label>
+          <Label htmlFor="email">Email</Label>
           <Input
             id="email"
             name="email"
             type="email"
+            required
             defaultValue={tenant?.email || ''}
             placeholder="juan@email.com"
           />

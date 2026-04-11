@@ -3,7 +3,7 @@ import { receiptSchema } from '@/lib/validations/receipt'
 
 const validReceipt = {
   lease_id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-  period: 'Abril 2026',
+  period: '2026-04',
   description: 'Alquiler mensual',
 }
 
@@ -16,7 +16,7 @@ describe('receiptSchema', () => {
   it('acepta datos mínimos (sin description)', () => {
     const result = receiptSchema.safeParse({
       lease_id: validReceipt.lease_id,
-      period: 'Marzo 2026',
+      period: '2026-03',
     })
     expect(result.success).toBe(true)
   })
@@ -29,6 +29,18 @@ describe('receiptSchema', () => {
 
   it('rechaza período vacío', () => {
     const result = receiptSchema.safeParse({ ...validReceipt, period: '' })
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0].path).toContain('period')
+  })
+
+  it('rechaza período con formato libre (texto)', () => {
+    const result = receiptSchema.safeParse({ ...validReceipt, period: 'Abril 2026' })
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0].path).toContain('period')
+  })
+
+  it('rechaza mes inválido en period', () => {
+    const result = receiptSchema.safeParse({ ...validReceipt, period: '2026-13' })
     expect(result.success).toBe(false)
     expect(result.error?.issues[0].path).toContain('period')
   })

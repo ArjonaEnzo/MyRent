@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { DeleteTenantButton } from '@/components/tenants/DeleteTenantButton'
 import { ReactivateTenantButton } from '@/components/tenants/ReactivateTenantButton'
+import { InviteTenantButton } from '@/components/tenants/InviteTenantButton'
 
 export default async function TenantDetailPage({
   params,
@@ -105,7 +106,17 @@ export default async function TenantDetailPage({
           {!isArchived && (
             <>
               <Separator />
-              <DeleteTenantButton tenantId={tenant.id} />
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Acceso al portal del inquilino</p>
+                  <InviteTenantButton
+                    tenantId={tenant.id}
+                    hasAccess={!!tenant.auth_user_id}
+                    hasEmail={!!tenant.email}
+                  />
+                </div>
+                <DeleteTenantButton tenantId={tenant.id} />
+              </div>
             </>
           )}
         </CardContent>

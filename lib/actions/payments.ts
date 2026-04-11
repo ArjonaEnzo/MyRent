@@ -185,8 +185,8 @@ export async function getPaymentEvents(paymentId: string): Promise<PaymentEvent[
  * que MP devuelve en el webhook para reconciliar el pago.
  *
  * Compatibilidad:
- *   - Sandbox: usa sandbox_init_point si el token empieza con "TEST-"
- *   - Producción: usa init_point
+ *   - Las credenciales del tab "Prueba" del panel MP devuelven un init_point
+ *     que ya apunta al checkout sandbox automáticamente. Siempre usamos init_point.
  */
 export async function initiateOnlinePayment(receiptId: string): Promise<
   { success: true; checkoutUrl: string } | { success: false; error: string }
@@ -290,9 +290,9 @@ export async function initiateOnlinePayment(receiptId: string): Promise<
       return { success: false, error: 'No se pudo iniciar el pago con Mercado Pago. Intentá de nuevo.' }
     }
 
-    // 5. Usar sandbox_init_point en entorno de pruebas
-    const isSandbox = env.MERCADOPAGO_ACCESS_TOKEN.startsWith('TEST-')
-    const checkoutUrl = isSandbox ? preference.sandboxInitPoint : preference.initPoint
+    // 5. Usar init_point — MP lo routea al checkout correcto (sandbox/prod)
+    //    según el tipo de credencial configurada.
+    const checkoutUrl = preference.initPoint
 
     // 6. Guardar la checkout_url y el ID de preferencia en el registro
     await adminSupabase
@@ -401,51 +401,36 @@ export async function processProviderPaymentEvent(input: ProcessPaymentEventInpu
     const validated = processPaymentEventSchema.parse(input)
     const adminSupabase = createAdminClient()
 
-    // 1. Record the event — idempotent via UNIQUE(provider, provider_event_id).
-    // upsert with ignoreDuplicates=true maps to ON CONFLICT DO NOTHING.
-    const { error: eventError } = await adminSupabase
+    // 1. Atomically claim this event via INSERT.
+    // UNIQUE(provider, provider_event_id) guarantees only one concurrent
+    // processor wins. A 23505 (unique_violation) means another worker
+    // already claimed it — short-circuit as duplicate without re-running
+    // the payment/receipt update logic (prevents double-write race).
+    const { error: insertError } = await adminSupabase
       .from('payment_events')
-      .upsert(
-        {
-          account_id: validated.account_id,
-          payment_id: validated.payment_id,
-          provider: validated.provider,
-          provider_event_id: validated.provider_event_id,
-          event_type: validated.event_type,
-          event_data: (validated.event_data ?? null) as Json | null,
-        },
-        {
-          onConflict: 'provider,provider_event_id',
-          ignoreDuplicates: true,
-        }
-      )
+      .insert({
+        account_id: validated.account_id,
+        payment_id: validated.payment_id,
+        provider: validated.provider,
+        provider_event_id: validated.provider_event_id,
+        event_type: validated.event_type,
+        event_data: (validated.event_data ?? null) as Json | null,
+      })
 
-    if (eventError) {
-      logger.error('Failed to upsert payment_event', {
-        error: eventError.message,
+    if (insertError) {
+      if ((insertError as { code?: string }).code === '23505') {
+        logger.info('Duplicate payment event ignored (already claimed)', {
+          provider: validated.provider,
+          providerEventId: validated.provider_event_id,
+        })
+        return { success: true, duplicate: true }
+      }
+      logger.error('Failed to insert payment_event', {
+        error: insertError.message,
         paymentId: validated.payment_id,
         providerEventId: validated.provider_event_id,
       })
       return { success: false, error: 'Failed to record event' }
-    }
-
-    // Check if this was a duplicate (already-processed event).
-    // When ignoreDuplicates=true, a conflict means the event already exists.
-    // We detect this by checking if the event is already marked processed.
-    const { data: existingEvent } = await adminSupabase
-      .from('payment_events')
-      .select('processed_at')
-      .eq('provider', validated.provider)
-      .eq('provider_event_id', validated.provider_event_id)
-      .maybeSingle()
-
-    if (existingEvent?.processed_at) {
-      // Already processed — idempotent response
-      logger.info('Duplicate payment event ignored (already processed)', {
-        provider: validated.provider,
-        providerEventId: validated.provider_event_id,
-      })
-      return { success: true, duplicate: true }
     }
 
     // 2. Map provider status to our canonical PaymentStatus

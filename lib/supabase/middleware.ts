@@ -75,7 +75,10 @@ export async function updateSession(request: NextRequest) {
   // Any unauthenticated access to /tenant/* redirects to /tenant/login.
   // Whether the authenticated user is actually a tenant is checked inside
   // the page via getCurrentTenant() — middleware only enforces authentication.
-  if (!user && pathname.startsWith('/tenant') && pathname !== '/tenant/login') {
+  // /tenant/set-password is public: tenants arrive here from the invite email
+  // before a session is established (the client page exchanges the token).
+  const tenantPublicPaths = ['/tenant/login', '/tenant/set-password']
+  if (!user && pathname.startsWith('/tenant') && !tenantPublicPaths.includes(pathname)) {
     const redirectUrl = new URL('/tenant/login', request.url)
     redirectUrl.searchParams.set('redirect', pathname)
     return NextResponse.redirect(redirectUrl)

@@ -21,11 +21,9 @@ interface ReceiptFormProps {
 
 function getCurrentPeriod() {
   const now = new Date()
-  const months = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-  ]
-  return `${months[now.getMonth()]} ${now.getFullYear()}`
+  const yyyy = now.getFullYear()
+  const mm = String(now.getMonth() + 1).padStart(2, '0')
+  return `${yyyy}-${mm}`
 }
 
 export function ReceiptForm({ leases }: ReceiptFormProps) {
@@ -100,10 +98,9 @@ export function ReceiptForm({ leases }: ReceiptFormProps) {
         <Input
           id="period"
           name="period"
-          type="text"
+          type="month"
           required
           defaultValue={getCurrentPeriod()}
-          placeholder="Ej: Febrero 2026"
         />
       </div>
 

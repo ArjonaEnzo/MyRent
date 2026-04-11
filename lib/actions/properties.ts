@@ -26,6 +26,7 @@ import { validateId } from '@/lib/validations/common'
 export async function createProperty(formData: PropertyInput) {
   try {
     const { user, accountId, supabase } = await getCurrentUserWithAccount()
+    await requireRole(supabase, accountId, user.id, ['owner', 'admin'])
 
     await propertyRateLimit.limit(user.id)
 
@@ -247,14 +248,33 @@ export async function getArchivedProperties(): Promise<PropertyWithActiveLease[]
   return data.map((p) => ({ ...p, active_lease: null }))
 }
 
+const ALLOWED_IMAGE_MIME = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const MIME_TO_EXT: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+}
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024 // 5 MB per image
+
 export async function uploadPropertyImages(
   propertyId: string,
   files: { name: string; type: string; buffer: number[] }[]
 ) {
   try {
     const validId = validateId(propertyId)
-    const { accountId, supabase } = await getCurrentUserWithAccount()
+    const { user, accountId, supabase } = await getCurrentUserWithAccount()
+    await requireRole(supabase, accountId, user.id, ['owner', 'admin'])
     const adminSupabase = createAdminClient()
+
+    const safeFiles = files.filter((f) => {
+      if (!ALLOWED_IMAGE_MIME.has(f.type)) return false
+      if (f.buffer.length > MAX_IMAGE_BYTES) return false
+      return true
+    })
+
+    if (safeFiles.length === 0) {
+      return { success: false, error: 'Formato o tamaño de imagen inválido (solo JPG/PNG/WebP hasta 5 MB)' }
+    }
 
     const { count } = await supabase
       .from('property_images')
@@ -268,11 +288,11 @@ export async function uploadPropertyImages(
       return { success: false, error: 'Ya tiene el máximo de 6 imágenes' }
     }
 
-    const toUpload = files.slice(0, remaining)
+    const toUpload = safeFiles.slice(0, remaining)
     const uploaded: { url: string; storage_path: string }[] = []
 
     for (const file of toUpload) {
-      const ext = file.name.split('.').pop() ?? 'jpg'
+      const ext = MIME_TO_EXT[file.type] ?? 'jpg'
       const path = `${accountId}/${validId}/${crypto.randomUUID()}.${ext}`
       const buffer = Buffer.from(file.buffer)
 
@@ -334,7 +354,8 @@ export async function setCoverImage(propertyId: string, imageId: string) {
   try {
     const validPropertyId = validateId(propertyId)
     const validImageId = validateId(imageId)
-    const { accountId, supabase } = await getCurrentUserWithAccount()
+    const { user, accountId, supabase } = await getCurrentUserWithAccount()
+    await requireRole(supabase, accountId, user.id, ['owner', 'admin'])
 
     await supabase
       .from('property_images')
@@ -371,7 +392,8 @@ export async function deletePropertyImage(propertyId: string, imageId: string) {
   try {
     const validPropertyId = validateId(propertyId)
     const validImageId = validateId(imageId)
-    const { accountId, supabase } = await getCurrentUserWithAccount()
+    const { user, accountId, supabase } = await getCurrentUserWithAccount()
+    await requireRole(supabase, accountId, user.id, ['owner', 'admin'])
     const adminSupabase = createAdminClient()
 
     const { data: img } = await supabase

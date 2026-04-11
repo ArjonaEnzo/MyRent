@@ -1,6 +1,7 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getCurrentTenantOrNull } from '@/lib/supabase/tenant-auth'
-import { Home } from 'lucide-react'
+import { Home, Settings } from 'lucide-react'
 import { LogoutButton } from '@/components/tenant/LogoutButton'
 
 export default async function TenantPortalLayout({
@@ -40,6 +41,13 @@ export default async function TenantPortalLayout({
             <span className="hidden text-xs text-white/40 sm:block">
               {session.user.email}
             </span>
+            <Link
+              href="/tenant/settings"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-white/50 transition hover:bg-white/[0.05] hover:text-white"
+              title="Configuración"
+            >
+              <Settings className="h-4 w-4" />
+            </Link>
             <LogoutButton />
           </div>
         </div>

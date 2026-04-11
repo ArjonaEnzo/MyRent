@@ -1,7 +1,7 @@
 'use server'
 
 import { createAdminClient } from '@/lib/supabase/server'
-import { getCurrentUserWithAccount } from '@/lib/supabase/auth'
+import { getCurrentUserWithAccount, requireRole } from '@/lib/supabase/auth'
 import { receiptSchema, type ReceiptInput } from '@/lib/validations/receipt'
 import type { Database } from '@/types/database.types'
 
@@ -19,34 +19,37 @@ import React from 'react'
 import { receiptRateLimit } from '@/lib/utils/rate-limit'
 import { validateId } from '@/lib/validations/common'
 import { withRetry } from '@/lib/utils/retry'
-import { getLease } from '@/lib/actions/leases'
 
 export async function createReceipt(formData: ReceiptInput) {
   try {
     const { user, accountId, supabase } = await getCurrentUserWithAccount()
+    await requireRole(supabase, accountId, user.id, ['owner', 'admin'])
 
     await receiptRateLimit.limit(user.id)
 
     const validated = receiptSchema.parse(formData)
     const adminSupabase = createAdminClient()
 
-    // Obtener datos del contrato (incluye tenant, property, monto)
-    const lease = await getLease(validated.lease_id)
+    // 1. Crear el recibo via RPC issue_receipt — atómico, idempotente,
+    //    snapshot completo (incluye dni_cuit), audit log incluido.
+    //    Si ya existe un recibo para (lease_id, period), la RPC lo devuelve.
+    const { data: rpcReceipt, error: rpcError } = await supabase.rpc('issue_receipt', {
+      p_actor_user_id: user.id,
+      p_account_id: accountId,
+      p_lease_id: validated.lease_id,
+      p_period: validated.period,
+      p_description: validated.description || undefined,
+    })
 
-    if (!lease) {
-      return { success: false, error: 'Contrato no encontrado' }
+    if (rpcError || !rpcReceipt) {
+      logger.error('issue_receipt RPC failed', { error: rpcError?.message })
+      return { success: false, error: 'Error al crear el recibo' }
     }
 
-    // Obtener el DNI/CUIT del inquilino para el snapshot
-    const { data: tenantData } = lease.tenant_id
-      ? await supabase
-          .from('tenants')
-          .select('dni_cuit')
-          .eq('id', lease.tenant_id)
-          .single()
-      : { data: null }
+    const receipt = rpcReceipt as Receipt
+    const receiptId = receipt.id
 
-    const receiptId = crypto.randomUUID()
+    // 2. Generar PDF a partir del snapshot ya guardado en DB.
     const now = new Date()
     const dateStr = now.toLocaleDateString('es-AR', {
       year: 'numeric',
@@ -54,27 +57,27 @@ export async function createReceipt(formData: ReceiptInput) {
       day: 'numeric',
     })
 
-    // Generar PDF
     const pdfElement = React.createElement(ReceiptPDF, {
-      recipientName: lease.tenant_name ?? '',
-      recipientAddress: lease.property_address ?? '',
-      amount: lease.rent_amount ?? 0,
-      currency: lease.currency ?? 'ARS',
-      period: validated.period,
+      recipientName: receipt.snapshot_tenant_name,
+      recipientAddress: receipt.snapshot_property_address,
+      amount: receipt.snapshot_amount,
+      currency: receipt.snapshot_currency,
+      period: receipt.period,
       date: dateStr,
       receiptId,
-      description: validated.description || null,
+      description: receipt.description ?? null,
     })
     const pdfBuffer = await renderToBuffer(pdfElement as any)
 
-    // Subir PDF a Supabase Storage (con retry por transient errors)
+    // 3. Subir PDF a Supabase Storage (con retry por transient errors).
+    //    upsert: true porque la RPC es idempotente — re-llamadas regeneran el PDF.
     const fileName = `${accountId}/${receiptId}.pdf`
     let uploadError: Error | null = null
     try {
       await withRetry(async () => {
         const result = await adminSupabase.storage
           .from('receipts')
-          .upload(fileName, pdfBuffer, { contentType: 'application/pdf', upsert: false })
+          .upload(fileName, pdfBuffer, { contentType: 'application/pdf', upsert: true })
         if (result.error) throw result.error
       }, { maxRetries: 2, initialDelayMs: 500 })
     } catch (err) {
@@ -83,66 +86,53 @@ export async function createReceipt(formData: ReceiptInput) {
 
     if (uploadError) {
       logger.error('Failed to upload PDF', { error: uploadError.message })
+      // No borramos el recibo: queda en draft, se puede reintentar.
       return { success: false, error: 'Error al subir el PDF' }
     }
 
-    // Obtener URL firmada (válida por 1 año)
+    // 4. Signed URL (1 año — H3 pendiente: pasar a on-demand).
     const { data: signedUrlData } = await adminSupabase.storage
       .from('receipts')
       .createSignedUrl(fileName, 60 * 60 * 24 * 365)
 
     const pdfUrl = signedUrlData?.signedUrl ?? null
 
-    // Guardar recibo en DB
-    const { error: insertError } = await supabase.from('receipts').insert({
-      id: receiptId,
-      account_id: accountId,
-      lease_id: validated.lease_id,
-      property_id: lease.property_id!,
-      tenant_id: lease.tenant_id!,
-      period: validated.period,
-      status: 'generated',
-      snapshot_tenant_name: lease.tenant_name ?? '',
-      snapshot_tenant_dni_cuit: tenantData?.dni_cuit ?? null,
-      snapshot_property_address: lease.property_address ?? '',
-      snapshot_amount: lease.rent_amount ?? 0,
-      snapshot_currency: lease.currency ?? 'ARS',
-      storage_path: fileName,
-      pdf_url: pdfUrl ?? null,
-      email_sent: false,
-      description: validated.description || null,
-    })
+    // 5. Promover de draft → generated y guardar pdf info.
+    const { error: updateError } = await supabase
+      .from('receipts')
+      .update({
+        status: 'generated',
+        storage_path: fileName,
+        pdf_url: pdfUrl,
+        email_sent: false,
+      })
+      .eq('id', receiptId)
+      .eq('account_id', accountId)
 
-    if (insertError) {
-      logger.error('Failed to save receipt', { error: insertError.message })
-
-      // Cleanup: eliminar PDF huérfano del Storage
-      try {
-        await adminSupabase.storage.from('receipts').remove([fileName])
-        logger.info('Cleaned up orphaned PDF', { fileName })
-      } catch (cleanupError) {
-        logger.error('Failed to cleanup orphaned PDF', {
-          fileName,
-          error: cleanupError instanceof Error ? cleanupError.message : 'Unknown error',
-        })
-      }
-
+    if (updateError) {
+      logger.error('Failed to update receipt with PDF info', { error: updateError.message })
       return { success: false, error: 'Error al guardar el recibo' }
     }
 
-    // Enviar email si el inquilino tiene email y el PDF se generó correctamente
-    if (lease.tenant_email && pdfUrl) {
+    // 6. Enviar email si el inquilino tiene email registrado.
+    const { data: tenantContact } = await supabase
+      .from('tenants')
+      .select('email')
+      .eq('id', receipt.tenant_id)
+      .single()
+
+    if (tenantContact?.email && pdfUrl) {
       try {
         await withRetry(
           () => sendReceiptEmail({
-            to: lease.tenant_email!,
-            recipientName: lease.tenant_name ?? '',
-            period: validated.period,
-            amount: lease.rent_amount ?? 0,
-            currency: lease.currency ?? 'ARS',
+            to: tenantContact.email!,
+            recipientName: receipt.snapshot_tenant_name,
+            period: receipt.period,
+            amount: receipt.snapshot_amount,
+            currency: receipt.snapshot_currency,
             pdfUrl,
             userId: user.id,
-            description: validated.description || null,
+            description: receipt.description ?? null,
           }),
           { maxRetries: 2, initialDelayMs: 1000 }
         )
@@ -152,7 +142,7 @@ export async function createReceipt(formData: ReceiptInput) {
           .update({ email_sent: true })
           .eq('id', receiptId)
 
-        logger.info('Receipt email sent', { receiptId, to: lease.tenant_email })
+        logger.info('Receipt email sent', { receiptId, to: tenantContact.email })
       } catch (emailError) {
         logger.error('Failed to send receipt email', {
           receiptId,
@@ -183,6 +173,7 @@ export async function resendReceiptEmail(receiptId: string) {
     const validId = validateId(receiptId)
 
     const { user, accountId, supabase } = await getCurrentUserWithAccount()
+    await requireRole(supabase, accountId, user.id, ['owner', 'admin'])
 
     const { data: receipt, error } = await supabase
       .from('receipts')
@@ -244,7 +235,10 @@ export async function getReceipts(options?: {
     .is('deleted_at', null)
 
   if (options?.search) {
-    query = query.or(`snapshot_tenant_name.ilike.%${options.search}%,period.ilike.%${options.search}%`)
+    const safeSearch = options.search.replace(/[,()\\.]/g, ' ').trim()
+    if (safeSearch) {
+      query = query.or(`snapshot_tenant_name.ilike.%${safeSearch}%,period.ilike.%${safeSearch}%`)
+    }
   }
 
   const { data, error, count } = await query

@@ -144,6 +144,69 @@ export type Database = {
           },
         ]
       }
+      hellosign_events: {
+        Row: {
+          account_id: string | null
+          event_hash: string
+          event_type: string
+          payload: Json | null
+          receipt_id: string | null
+          received_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          event_hash: string
+          event_type: string
+          payload?: Json | null
+          receipt_id?: string | null
+          received_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          event_hash?: string
+          event_type?: string
+          payload?: Json | null
+          receipt_id?: string | null
+          received_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hellosign_events_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_dashboard_overview"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "hellosign_events_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hellosign_events_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "active_receipts_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hellosign_events_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "receipts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hellosign_events_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "receipts_overview"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lease_adjustments: {
         Row: {
           account_id: string
@@ -407,28 +470,21 @@ export type Database = {
         Row: {
           account_id: string
           amount: number
-          /** URL to redirect tenant to for payment completion */
           checkout_url: string | null
           created_at: string
           currency: string
           delete_reason: string | null
           deleted_at: string | null
           deleted_by: string | null
-          /** Our reference ID sent to the provider (e.g., Mercado Pago external_reference) */
           external_reference: string | null
           id: string
-          /** Auth user who initiated this payment (tenant or staff) */
           initiated_by_user_id: string | null
-          /** Provider-specific response data */
           metadata: Json | null
           notes: string | null
           paid_at: string | null
           payment_method: string | null
-          /** Payment provider identifier ('manual', 'mercadopago', etc.) */
           provider: string
-          /** Provider-assigned payment ID — used with provider as idempotency key */
           provider_payment_id: string | null
-          /** Raw status from provider before mapping to canonical status */
           provider_status: string | null
           receipt_id: string
           reference: string | null
@@ -658,6 +714,27 @@ export type Database = {
           },
         ]
       }
+      rate_limits: {
+        Row: {
+          bucket: string
+          count: number
+          key: string
+          window_start: string
+        }
+        Insert: {
+          bucket: string
+          count?: number
+          key: string
+          window_start: string
+        }
+        Update: {
+          bucket?: string
+          count?: number
+          key?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       receipts: {
         Row: {
           account_id: string
@@ -874,7 +951,6 @@ export type Database = {
       tenants: {
         Row: {
           account_id: string
-          /** Links this tenant record to a Supabase Auth user for portal access. NULL until tenant accepts invite. UNIQUE on non-NULL values. */
           auth_user_id: string | null
           created_at: string
           delete_reason: string | null
@@ -1640,6 +1716,16 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      check_rate_limit: {
+        Args: {
+          p_bucket: string
+          p_key: string
+          p_max: number
+          p_window_seconds: number
+        }
+        Returns: boolean
+      }
+      cleanup_rate_limits: { Args: never; Returns: undefined }
       enforce_account_role: {
         Args: { p_account_id: string; p_roles: string[]; p_user_id: string }
         Returns: undefined

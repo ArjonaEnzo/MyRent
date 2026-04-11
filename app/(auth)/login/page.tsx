@@ -259,17 +259,30 @@ export default function LoginPage() {
                 </motion.div>
               </form>
 
-              <motion.p
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.6, delay: 1 }}
-                className="mt-6 text-center text-sm text-muted-foreground"
+                className="mt-6 space-y-2 text-center text-sm text-muted-foreground"
               >
-                {t.auth.login.noAccount}{' '}
-                <Link href="/signup" className="font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline transition-colors">
-                  {t.auth.login.signup}
-                </Link>
-              </motion.p>
+                <p>
+                  {t.auth.login.noAccount}{' '}
+                  <Link href="/signup" className="font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline transition-colors">
+                    {t.auth.login.signup}
+                  </Link>
+                </p>
+                <p className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+                  ¿Sos inquilino?{' '}
+                  <Link href="/tenant/login" className="font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline transition-colors">
+                    Accedé al portal
+                  </Link>
+                </p>
+                <p>
+                  <Link href="/" className="text-muted-foreground hover:text-foreground hover:underline transition-colors">
+                    ← Volver al inicio
+                  </Link>
+                </p>
+              </motion.div>
             </CardContent>
           </Card>
         </motion.div>

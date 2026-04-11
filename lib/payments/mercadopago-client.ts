@@ -13,7 +13,11 @@
  */
 
 import { MercadoPagoConfig, Preference, Payment } from 'mercadopago'
+import { createHmac, timingSafeEqual } from 'crypto'
 import { env } from '@/lib/env'
+
+/** Ventana máxima de antigüedad aceptada para el timestamp del webhook (replay protection) */
+const MP_WEBHOOK_MAX_SKEW_MS = 5 * 60 * 1000
 
 // ─── Client factory ───────────────────────────────────────────────────────────
 
@@ -103,7 +107,7 @@ export async function createCheckoutPreference(
   const preferenceClient = new Preference(client)
 
   const appUrl = env.NEXT_PUBLIC_APP_URL
-  const isSandbox = env.MERCADOPAGO_ACCESS_TOKEN?.startsWith('TEST-')
+  const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)/.test(appUrl)
 
   const result = await preferenceClient.create({
     body: {
@@ -124,29 +128,30 @@ export async function createCheckoutPreference(
           }
         : undefined,
 
-      // Redireccionamientos post-pago
-      back_urls: {
-        success: `${appUrl}/tenant/payment/success?payment_id=${input.paymentId}`,
-        failure: `${appUrl}/tenant/payment/failure?payment_id=${input.paymentId}`,
-        pending: `${appUrl}/tenant/payment/pending?payment_id=${input.paymentId}`,
-      },
-
-      // 'approved': solo redirige automáticamente si el pago fue aprobado.
-      // Pagos pendientes (ej. pagos en efectivo) quedan en el checkout de MP.
-      auto_return: 'approved' as const,
+      // Redireccionamientos post-pago. MP exige URLs públicas; en dev con
+      // localhost omitimos back_urls y auto_return (MP los rechaza).
+      ...(isLocalhost
+        ? {}
+        : {
+            back_urls: {
+              success: `${appUrl}/tenant/payment/success?payment_id=${input.paymentId}`,
+              failure: `${appUrl}/tenant/payment/failure?payment_id=${input.paymentId}`,
+              pending: `${appUrl}/tenant/payment/pending?payment_id=${input.paymentId}`,
+            },
+            auto_return: 'approved' as const,
+          }),
 
       // Identificador que MP devuelve en el webhook — es nuestro payments.id
       external_reference: input.paymentId,
 
-      // URL donde MP envía las notificaciones de cambio de estado
-      // Debe ser una URL pública accesible desde internet
-      notification_url: `${appUrl}/api/webhooks/mercadopago`,
+      // URL donde MP envía las notificaciones. En dev con localhost se omite
+      // (MP no puede alcanzarla; usar un tunnel tipo ngrok/cloudflared).
+      ...(isLocalhost
+        ? {}
+        : { notification_url: `${appUrl}/api/webhooks/mercadopago` }),
 
       // Texto que aparece en el resumen del banco del pagador
       statement_descriptor: 'MYRENT',
-
-      // En sandbox, forzar modo de prueba
-      ...(isSandbox ? { marketplace: 'NONE' } : {}),
     },
   })
 
@@ -243,18 +248,25 @@ export function verifyWebhookSignature(params: {
     return false
   }
 
+  // Freshness: rechazar webhooks con ts fuera de la ventana (±5 min).
+  // Protección contra replay con firmas capturadas. MP manda ts en ms.
+  const tsNum = Number(ts)
+  if (!Number.isFinite(tsNum)) return false
+  const skew = Math.abs(Date.now() - tsNum)
+  if (skew > MP_WEBHOOK_MAX_SKEW_MS) {
+    return false
+  }
+
   // Construir el template exacto que MP firma
   const signedTemplate = `id:${dataId};request-id:${xRequestId};ts:${ts};`
 
   // Calcular HMAC-SHA256
-  const { createHmac } = require('crypto') as typeof import('crypto')
   const calculatedHash = createHmac('sha256', secret)
     .update(signedTemplate)
     .digest('hex')
 
   // Comparación segura contra timing attacks
   try {
-    const { timingSafeEqual } = require('crypto') as typeof import('crypto')
     return timingSafeEqual(
       Buffer.from(calculatedHash, 'hex'),
       Buffer.from(receivedHash, 'hex')

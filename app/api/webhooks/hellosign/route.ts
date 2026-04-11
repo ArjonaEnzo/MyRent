@@ -95,6 +95,39 @@ export async function POST(request: NextRequest) {
 
     const accountId = receipt.account_id
 
+    // 3.b Idempotencia: claim atómico vía hellosign_events.event_hash UNIQUE.
+    // Si otra instancia ya procesó este event_hash, INSERT da 23505 → respondemos
+    // 200 sin re-ejecutar handlers. Esto evita inserciones duplicadas en
+    // signature_events y, sobre todo, re-descargas del PDF firmado.
+    // hellosign_events tabla nueva — no está en database.types.ts todavía.
+    const supabaseUntyped = supabase as unknown as {
+      from: (table: string) => {
+        insert: (row: Record<string, unknown>) => Promise<{ error: { code?: string; message: string } | null }>
+      }
+    }
+    const { error: claimError } = await supabaseUntyped
+      .from('hellosign_events')
+      .insert({
+        event_hash: eventHash,
+        event_type: eventType,
+        receipt_id: receiptId,
+        account_id: accountId,
+        payload: body as Record<string, unknown>,
+      })
+
+    if (claimError) {
+      if (claimError.code === '23505') {
+        logger.info('HelloSign webhook: duplicate event ignored', { eventType, eventHash })
+        return NextResponse.json({ message: 'Hello API Event Received' })
+      }
+      // Si la tabla no existe todavía (migración pendiente) seguimos sin claim
+      // — fail-open para no perder eventos durante el deploy.
+      logger.warn('HelloSign webhook: claim failed, processing anyway', {
+        error: claimError.message,
+        eventType,
+      })
+    }
+
     // 4. Procesar según tipo de evento
     switch (eventType) {
       case 'signature_request_sent':

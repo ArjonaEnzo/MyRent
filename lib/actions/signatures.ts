@@ -1,6 +1,6 @@
 'use server'
 
-import { getCurrentUserWithAccount } from '@/lib/supabase/auth'
+import { getCurrentUserWithAccount, requireRole } from '@/lib/supabase/auth'
 import { createSignatureRequest } from '@/lib/signatures/hellosign-client'
 import { logger, logError } from '@/lib/utils/logger'
 import { isRedirectError } from 'next/dist/client/components/redirect-error'
@@ -17,6 +17,7 @@ export async function sendReceiptForSignature(receiptId: string) {
   try {
     const validId = validateId(receiptId)
     const { user, accountId, supabase } = await getCurrentUserWithAccount()
+    await requireRole(supabase, accountId, user.id, ['owner', 'admin'])
 
     // 1. Obtener datos del recibo con email del inquilino live
     const { data: receipt, error } = await supabase

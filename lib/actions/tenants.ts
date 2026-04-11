@@ -1,7 +1,9 @@
 'use server'
 
 import { getCurrentUserWithAccount, requireRole } from '@/lib/supabase/auth'
+import { createAdminClient } from '@/lib/supabase/server'
 import { tenantSchema, type TenantInput } from '@/lib/validations/tenant'
+import { env } from '@/lib/env'
 import type { Database } from '@/types/database.types'
 
 type Tenant = Database['public']['Tables']['tenants']['Row']
@@ -16,6 +18,7 @@ import { validateId } from '@/lib/validations/common'
 export async function createTenant(formData: TenantInput) {
   try {
     const { user, accountId, supabase } = await getCurrentUserWithAccount()
+    await requireRole(supabase, accountId, user.id, ['owner', 'admin'])
 
     await propertyRateLimit.limit(user.id)
 
@@ -24,7 +27,7 @@ export async function createTenant(formData: TenantInput) {
     const { error } = await supabase.from('tenants').insert({
       account_id: accountId,
       full_name: validated.full_name,
-      email: validated.email || null,
+      email: validated.email,
       phone: validated.phone || null,
       dni_cuit: validated.dni_cuit || null,
     })
@@ -62,7 +65,7 @@ export async function updateTenant(id: string, formData: TenantInput) {
       .from('tenants')
       .update({
         full_name: validated.full_name,
-        email: validated.email || null,
+        email: validated.email,
         phone: validated.phone || null,
         dni_cuit: validated.dni_cuit || null,
       })
@@ -151,7 +154,10 @@ export async function getTenants(options?: {
     .is('deleted_at', null)
 
   if (options?.search) {
-    query = query.or(`full_name.ilike.%${options.search}%,email.ilike.%${options.search}%`)
+    const safeSearch = options.search.replace(/[,()\\.]/g, ' ').trim()
+    if (safeSearch) {
+      query = query.or(`full_name.ilike.%${safeSearch}%,email.ilike.%${safeSearch}%`)
+    }
   }
 
   const { data, error, count } = await query
@@ -200,6 +206,80 @@ export async function getArchivedTenants(): Promise<Tenant[]> {
     return []
   }
   return data
+}
+
+export async function inviteTenant(id: string) {
+  try {
+    const validId = validateId(id)
+
+    const { user, accountId, supabase } = await getCurrentUserWithAccount()
+    await requireRole(supabase, accountId, user.id, ['owner', 'admin'])
+
+    const { data: tenant, error: fetchError } = await supabase
+      .from('tenants')
+      .select('id, email, full_name, auth_user_id')
+      .eq('id', validId)
+      .eq('account_id', accountId)
+      .is('deleted_at', null)
+      .single()
+
+    if (fetchError || !tenant) {
+      return { success: false, error: 'Inquilino no encontrado' }
+    }
+
+    if (!tenant.email) {
+      return { success: false, error: 'El inquilino no tiene email registrado' }
+    }
+
+    if (tenant.auth_user_id) {
+      return { success: false, error: 'Este inquilino ya tiene acceso al portal' }
+    }
+
+    const admin = createAdminClient()
+    const redirectTo = `${env.NEXT_PUBLIC_APP_URL}/tenant/set-password`
+
+    const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(
+      tenant.email,
+      {
+        redirectTo,
+        data: { tenant_id: tenant.id, full_name: tenant.full_name },
+      }
+    )
+
+    if (inviteError || !invited.user) {
+      logger.error('Failed to invite tenant', { error: inviteError?.message, tenantId: validId })
+      const msg = inviteError?.message ?? ''
+      if (msg.includes('already been registered') || msg.includes('already exists')) {
+        return {
+          success: false,
+          error: 'Ese email ya tiene una cuenta. Pedile al inquilino que inicie sesión en /tenant/login o que use "Olvidé mi contraseña".',
+        }
+      }
+      return { success: false, error: 'No se pudo enviar la invitación' }
+    }
+
+    const { error: linkError } = await admin
+      .from('tenants')
+      .update({ auth_user_id: invited.user.id })
+      .eq('id', validId)
+      .eq('account_id', accountId)
+
+    if (linkError) {
+      logger.error('Failed to link invited tenant to auth user', {
+        error: linkError.message,
+        tenantId: validId,
+        authUserId: invited.user.id,
+      })
+      return { success: false, error: 'Invitación enviada pero no se pudo vincular la cuenta. Contactá soporte.' }
+    }
+
+    logger.info('Tenant invited to portal', { tenantId: validId, authUserId: invited.user.id })
+    revalidatePath(`/tenants/${validId}`)
+    return { success: true }
+  } catch (error) {
+    logError(error, { action: 'inviteTenant' })
+    return { success: false, error: 'Error al invitar al inquilino' }
+  }
 }
 
 export async function reactivateTenant(id: string) {

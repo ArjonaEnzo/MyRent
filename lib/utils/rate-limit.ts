@@ -1,142 +1,74 @@
 import { RateLimitError } from './errors'
-
-interface RateLimitConfig {
-  maxRequests: number
-  windowMs: number
-}
-
-interface RateLimitEntry {
-  count: number
-  resetAt: number
-}
+import { createAdminClient } from '@/lib/supabase/server'
+import { logger } from './logger'
 
 /**
- * Rate Limiter simple en memoria
- * 
- * ⚠️ LIMITACIONES:
- * - No funciona en entornos multi-instancia (serverless)
- * - Se resetea al reiniciar el servidor
- * - Para producción, usar Redis (Upstash, Vercel KV, etc.)
- * 
- * Para una solución distribuida, ver:
- * https://github.com/upstash/ratelimit
+ * Postgres-backed rate limiter (reemplaza el limiter en memoria).
+ *
+ * Por qué Postgres y no Redis/Upstash:
+ *   - No agrega dependencias nuevas ni infra externa.
+ *   - Estado compartido entre todas las instancias serverless.
+ *   - El RPC `check_rate_limit` hace INSERT…ON CONFLICT atómico, sin race.
+ *
+ * Failure mode: si la DB está caída cuando consultamos, abrimos el puerto
+ * (fail-open) en vez de bloquear todo el sistema. Loggeamos para que se
+ * note. La alternativa sería fail-closed pero rompería el dashboard ante
+ * un blip transitorio.
  */
-class InMemoryRateLimiter {
-  private store = new Map<string, RateLimitEntry>()
-  private config: RateLimitConfig
+class PostgresRateLimiter {
+  constructor(
+    private readonly bucket: string,
+    private readonly maxRequests: number,
+    private readonly windowSeconds: number,
+  ) {}
 
-  constructor(config: RateLimitConfig) {
-    this.config = config
-
-    // Limpiar entradas expiradas cada 60 segundos
-    setInterval(() => this.cleanup(), 60000)
-  }
-
-  /**
-   * Verifica si una key está dentro del límite
-   * @returns true si está permitido, false si excedió el límite
-   */
-  async check(key: string): Promise<{ success: boolean; remaining: number; resetAt: number }> {
-    const now = Date.now()
-    const entry = this.store.get(key)
-
-    // Si no existe o expiró, crear nueva entrada
-    if (!entry || now > entry.resetAt) {
-      const newEntry: RateLimitEntry = {
-        count: 1,
-        resetAt: now + this.config.windowMs,
-      }
-      this.store.set(key, newEntry)
-
-      return {
-        success: true,
-        remaining: this.config.maxRequests - 1,
-        resetAt: newEntry.resetAt,
-      }
-    }
-
-    // Si excedió el límite
-    if (entry.count >= this.config.maxRequests) {
-      return {
-        success: false,
-        remaining: 0,
-        resetAt: entry.resetAt,
-      }
-    }
-
-    // Incrementar contador
-    entry.count++
-    this.store.set(key, entry)
-
-    return {
-      success: true,
-      remaining: this.config.maxRequests - entry.count,
-      resetAt: entry.resetAt,
-    }
-  }
-
-  /**
-   * Verifica el límite y lanza error si se excedió
-   */
   async limit(key: string): Promise<void> {
-    const result = await this.check(key)
+    try {
+      const supabase = createAdminClient()
+      // RPC name not yet in generated types — cast until types are regenerated.
+      const { data, error } = await (
+        supabase.rpc as unknown as (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => Promise<{ data: boolean | null; error: { message: string } | null }>
+      )('check_rate_limit', {
+        p_bucket: this.bucket,
+        p_key: key,
+        p_max: this.maxRequests,
+        p_window_seconds: this.windowSeconds,
+      })
 
-    if (!result.success) {
-      const resetIn = Math.ceil((result.resetAt - Date.now()) / 1000)
-      throw new RateLimitError(`Límite excedido. Intenta de nuevo en ${resetIn} segundos.`)
-    }
-  }
-
-  /**
-   * Limpia entradas expiradas
-   */
-  private cleanup(): void {
-    const now = Date.now()
-    for (const [key, entry] of this.store.entries()) {
-      if (now > entry.resetAt) {
-        this.store.delete(key)
+      if (error) {
+        // Fail-open: la DB respondió pero la RPC tiró error.
+        // Probable migración no aplicada — loggear y dejar pasar.
+        logger.warn('check_rate_limit RPC error — fail-open', {
+          bucket: this.bucket,
+          error: error.message,
+        })
+        return
       }
-    }
-  }
 
-  /**
-   * Resetea el límite para una key específica
-   */
-  async reset(key: string): Promise<void> {
-    this.store.delete(key)
+      if (data === false) {
+        throw new RateLimitError(
+          `Límite excedido. Intenta de nuevo en unos segundos.`,
+        )
+      }
+    } catch (err) {
+      if (err instanceof RateLimitError) throw err
+      // Cualquier otra excepción → fail-open
+      logger.warn('Rate limit check failed — fail-open', {
+        bucket: this.bucket,
+        error: err instanceof Error ? err.message : String(err),
+      })
+    }
   }
 }
-
-/**
- * Rate limiters para diferentes operaciones
- */
 
 // 10 recibos por minuto por usuario
-export const receiptRateLimit = new InMemoryRateLimiter({
-  maxRequests: 10,
-  windowMs: 60 * 1000, // 1 minuto
-})
+export const receiptRateLimit = new PostgresRateLimiter('receipt', 10, 60)
 
 // 5 registros de propiedades por minuto por usuario
-export const propertyRateLimit = new InMemoryRateLimiter({
-  maxRequests: 5,
-  windowMs: 60 * 1000,
-})
+export const propertyRateLimit = new PostgresRateLimiter('property', 5, 60)
 
 // 20 emails por hora por usuario
-export const emailRateLimit = new InMemoryRateLimiter({
-  maxRequests: 20,
-  windowMs: 60 * 60 * 1000, // 1 hora
-})
-
-/**
- * Para usar en Server Actions:
- * 
- * @example
- * export async function generateReceipt(data: ReceiptInput) {
- *   const { user } = await getUser()
- *   await receiptRateLimit.limit(user.id)
- *   
- *   // ... resto de la lógica
- * }
- */
+export const emailRateLimit = new PostgresRateLimiter('email', 20, 60 * 60)

@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentTenant } from '@/lib/supabase/tenant-auth'
 import { signupSchema, loginSchema, type SignupInput, type LoginInput } from '@/lib/validations/auth'
 import { redirect } from 'next/navigation'
 import { logger, logError } from '@/lib/utils/logger'
@@ -162,6 +163,43 @@ export async function tenantLogin(formData: LoginInput) {
     }
 
     return { success: false, error: 'Error al iniciar sesión. Intenta de nuevo.' }
+  }
+}
+
+export async function changeTenantPassword(formData: {
+  currentPassword: string
+  newPassword: string
+}) {
+  try {
+    const { user, supabase } = await getCurrentTenant()
+
+    if (!formData.newPassword || formData.newPassword.length < 8) {
+      return { success: false, error: 'La nueva contraseña debe tener al menos 8 caracteres' }
+    }
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: user.email!,
+      password: formData.currentPassword,
+    })
+
+    if (signInError) {
+      return { success: false, error: 'La contraseña actual es incorrecta' }
+    }
+
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: formData.newPassword,
+    })
+
+    if (updateError) {
+      logger.error('Tenant password change failed', { error: updateError.message, userId: user.id })
+      return { success: false, error: 'No se pudo actualizar la contraseña' }
+    }
+
+    logger.info('Tenant password changed', { userId: user.id })
+    return { success: true }
+  } catch (error) {
+    logError(error, { action: 'changeTenantPassword' })
+    return { success: false, error: 'Error al cambiar la contraseña' }
   }
 }
 

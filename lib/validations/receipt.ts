@@ -6,8 +6,7 @@ export const receiptSchema = z.object({
     .uuid('Contrato inválido'),
   period: z
     .string({ required_error: 'El período es requerido' })
-    .min(1, 'El período es requerido')
-    .max(50, 'El período no puede exceder 50 caracteres'),
+    .regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'El período debe tener el formato YYYY-MM'),
   description: z
     .string()
     .max(500, 'La descripción no puede exceder 500 caracteres')

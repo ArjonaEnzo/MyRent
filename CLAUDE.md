@@ -6,18 +6,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 MyRent is a multi-tenant SaaS for rental property management. Landlords manage properties, tenants, leases, and generate immutable rent receipts (PDF + email). Written in Spanish (es-AR locale).
 
+Long-form architecture notes live in [ARCHITECTURE.md](ARCHITECTURE.md); this file is the canonical short reference for Claude Code.
+
 ## Commands
 
 ```bash
-pnpm dev          # Start dev server (localhost:3000)
+pnpm dev          # Start dev server with Turbopack (localhost:3000)
 pnpm build        # Production build
 pnpm lint         # ESLint (next lint)
-pnpm test         # Run tests (vitest)
+pnpm test         # Run tests (vitest — watch mode)
 pnpm test:ui      # Run tests with UI
 pnpm type-check   # TypeScript strict check (tsc --noEmit)
 ```
 
-Run a single test file: `pnpm vitest run __tests__/lib/validations/auth.test.ts`
+Run a single test file: `pnpm test run __tests__/lib/validations/auth.test.ts`
+
+Before reporting any task complete: run `pnpm test` and `pnpm type-check`.
 
 ## Tech Stack
 
@@ -40,6 +44,8 @@ Run a single test file: `pnpm vitest run __tests__/lib/validations/auth.test.ts`
 - `app/api/webhooks/` — External webhook handlers: `hellosign/route.ts` (digital signatures), `mercadopago/route.ts` (payment callbacks).
 
 > **Two auth contexts**: Staff users authenticate via `getCurrentUserWithAccount()` from `lib/supabase/auth.ts`. Tenant portal users authenticate via `getCurrentTenant()` from `lib/supabase/tenant-auth.ts` — returns `{ user, tenantId, accountId, supabase }`. Staff logins and tenant logins share the same Supabase Auth instance but are separated by RLS policies. Never mix the two contexts in the same action.
+
+Route-level enforcement lives in [middleware.ts](middleware.ts), which runs `lib/supabase/middleware.ts` session refresh and routes unauthenticated requests to `/login` vs `/tenant/login` based on path.
 
 ### Data Flow Pattern
 

@@ -1,12 +1,14 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Inter_Tight, Caveat } from 'next/font/google'
 import { Toaster } from 'sonner'
 import './globals.css'
 import '@/lib/env'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { LanguageProvider } from '@/components/providers/language-provider'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
+const interTight = Inter_Tight({ subsets: ['latin'], variable: '--font-display', weight: ['600', '700', '800', '900'] })
+const caveat = Caveat({ subsets: ['latin'], variable: '--font-script', weight: ['600', '700'] })
 
 export const metadata: Metadata = {
   title: 'MyRent - Gestión de Alquileres',
@@ -20,7 +22,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning className={`${inter.variable} ${interTight.variable} ${caveat.variable}`}>
       <body className={inter.className}>
         <ThemeProvider
           attribute="class"

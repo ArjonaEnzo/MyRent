@@ -32,9 +32,10 @@ const securityHeaders = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Next.js requiere unsafe-inline/eval para dev
       "style-src 'self' 'unsafe-inline'", // Tailwind requiere unsafe-inline
-      "img-src 'self' data: https://*.supabase.co",
+      "img-src 'self' data: https://*.supabase.co https://res.cloudinary.com",
+      "media-src 'self' https://res.cloudinary.com",
       "font-src 'self' data:",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://res.cloudinary.com",
       "frame-ancestors 'self'",
       "base-uri 'self'",
       "form-action 'self'",
