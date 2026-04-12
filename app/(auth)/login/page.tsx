@@ -39,13 +39,13 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen overflow-hidden dark:bg-slate-950">
+    <div className="flex min-h-screen overflow-hidden bg-background">
       {/* Left Panel - Branding */}
       <motion.div
         initial={{ opacity: 0, x: -50 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.6 }}
-        className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-700 dark:from-emerald-900 dark:via-teal-900 dark:to-cyan-950 items-center justify-center p-12 relative overflow-hidden"
+        className="hidden lg:flex lg:w-1/2 bg-primary items-center justify-center p-12 relative overflow-hidden"
       >
         {/* Toggles en esquina superior izquierda */}
         <motion.div
@@ -69,7 +69,7 @@ export default function LoginPage() {
             repeat: Infinity,
             ease: "linear"
           }}
-          className="absolute top-20 left-20 w-64 h-64 bg-emerald-400/20 dark:bg-emerald-400/10 rounded-full blur-3xl"
+          className="absolute top-20 left-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"
         />
         <motion.div
           animate={{
@@ -81,10 +81,10 @@ export default function LoginPage() {
             repeat: Infinity,
             ease: "linear"
           }}
-          className="absolute bottom-20 right-20 w-80 h-80 bg-cyan-400/20 dark:bg-cyan-400/10 rounded-full blur-3xl"
+          className="absolute bottom-20 right-20 w-80 h-80 bg-white/10 rounded-full blur-3xl"
         />
 
-        <div className="max-w-md text-white space-y-8 relative z-10">
+        <div className="max-w-md text-primary-foreground space-y-8 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -105,7 +105,7 @@ export default function LoginPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="text-xl text-emerald-50 dark:text-emerald-100 leading-relaxed"
+            className="text-xl text-primary-foreground/90 leading-relaxed"
           >
             {t.home.subtitle}
           </motion.p>
@@ -114,7 +114,7 @@ export default function LoginPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="space-y-4 text-emerald-50 dark:text-emerald-100"
+            className="space-y-4 text-primary-foreground/90"
           >
             {t.auth.login.features.map((item, index) => (
               <motion.li
@@ -127,7 +127,7 @@ export default function LoginPage() {
                 <motion.div
                   animate={{ scale: [1, 1.2, 1] }}
                   transition={{ duration: 2, repeat: Infinity, delay: index * 0.3 }}
-                  className="h-2 w-2 rounded-full bg-emerald-300 shadow-lg shadow-emerald-300/50"
+                  className="h-2 w-2 rounded-full bg-primary-foreground/70 shadow-lg shadow-primary-foreground/30"
                 />
                 <span className="text-base">{item}</span>
               </motion.li>
@@ -137,7 +137,7 @@ export default function LoginPage() {
       </motion.div>
 
       {/* Right Panel - Login Form */}
-      <div className="flex w-full lg:w-1/2 items-center justify-center p-4 sm:p-8 bg-gradient-to-br from-emerald-50/30 to-white dark:from-slate-950 dark:to-slate-900 relative">
+      <div className="flex w-full lg:w-1/2 items-center justify-center p-4 sm:p-8 bg-gradient-to-br from-primary/5 to-background relative">
         {/* Toggles para mobile (solo visible en pantallas pequeñas) */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -155,7 +155,7 @@ export default function LoginPage() {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="w-full max-w-md"
         >
-          <Card className="shadow-2xl border-slate-200/60 dark:border-slate-700/60 backdrop-blur-sm dark:bg-slate-900/80">
+          <Card className="shadow-2xl border-border/60 backdrop-blur-sm">
             <CardHeader className="text-center space-y-2">
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
@@ -164,10 +164,10 @@ export default function LoginPage() {
                 className="lg:hidden flex justify-center mb-4"
               >
                 <div className="flex items-center gap-2">
-                  <div className="rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 p-2">
-                    <Building2 className="h-6 w-6 text-white" />
+                  <div className="rounded-lg bg-primary p-2">
+                    <Building2 className="h-6 w-6 text-primary-foreground" />
                   </div>
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                  <h1 className="text-2xl font-bold text-primary">
                     MyRent
                   </h1>
                 </div>
@@ -179,8 +179,8 @@ export default function LoginPage() {
                 transition={{ duration: 0.6, delay: 0.5 }}
                 className="flex items-center justify-center gap-2"
               >
-                <Lock className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                <CardTitle className="text-2xl dark:text-slate-100">{t.auth.login.title}</CardTitle>
+                <Lock className="h-5 w-5 text-primary" />
+                <CardTitle className="text-2xl">{t.auth.login.title}</CardTitle>
               </motion.div>
               <motion.p
                 initial={{ opacity: 0 }}
@@ -252,7 +252,7 @@ export default function LoginPage() {
                   <Button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-lg shadow-emerald-500/30"
+                    className="w-full shadow-lg shadow-primary/30"
                   >
                     {loading ? t.auth.login.submitting : t.auth.login.submit}
                   </Button>
@@ -267,13 +267,13 @@ export default function LoginPage() {
               >
                 <p>
                   {t.auth.login.noAccount}{' '}
-                  <Link href="/signup" className="font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline transition-colors">
+                  <Link href="/signup" className="font-medium text-primary hover:text-primary/80 hover:underline transition-colors">
                     {t.auth.login.signup}
                   </Link>
                 </p>
-                <p className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+                <p className="pt-2 border-t border-border/60">
                   ¿Sos inquilino?{' '}
-                  <Link href="/tenant/login" className="font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline transition-colors">
+                  <Link href="/tenant/login" className="font-medium text-primary hover:text-primary/80 hover:underline transition-colors">
                     Accedé al portal
                   </Link>
                 </p>

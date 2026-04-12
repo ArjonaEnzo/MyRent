@@ -24,10 +24,10 @@ export default function PaymentFailurePage() {
       </div>
 
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+        <h1 className="text-2xl font-bold text-foreground">
           El pago no se completó
         </h1>
-        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+        <p className="mt-2 text-sm text-muted-foreground">
           Mercado Pago no pudo procesar el pago.
           <br />
           Podés intentarlo de nuevo o contactar a tu propietario.
@@ -37,7 +37,7 @@ export default function PaymentFailurePage() {
       <div className="flex gap-3">
         <Link
           href="/tenant/dashboard"
-          className="rounded-md border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+          className="rounded-md border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
         >
           Volver al portal
         </Link>

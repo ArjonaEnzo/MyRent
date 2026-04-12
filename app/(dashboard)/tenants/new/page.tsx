@@ -1,27 +1,22 @@
-import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Users } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import { PageHeader } from '@/components/shared/PageHeader'
 import { TenantForm } from '@/components/tenants/TenantForm'
 
 export default async function NewTenantPage() {
   return (
     <div className="max-w-2xl space-y-6">
-      <div>
-        <Link
-          href="/tenants"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Volver a inquilinos
-        </Link>
-      </div>
+      <PageHeader
+        icon={Users}
+        eyebrow="Nuevo"
+        title="Nuevo inquilino"
+        description="Registra un nuevo inquilino."
+        backHref="/tenants"
+        backLabel="Volver a inquilinos"
+      />
 
       <Card>
-        <CardHeader>
-          <CardTitle>Nuevo inquilino</CardTitle>
-          <p className="text-sm text-muted-foreground">Registra un nuevo inquilino.</p>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <TenantForm />
         </CardContent>
       </Card>

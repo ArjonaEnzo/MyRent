@@ -1,8 +1,8 @@
 import { getProperty } from '@/lib/actions/properties'
 import { notFound } from 'next/navigation'
-import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Building2 } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import { PageHeader } from '@/components/shared/PageHeader'
 import { PropertyForm } from '@/components/properties/PropertyForm'
 
 export default async function EditPropertyPage({
@@ -19,22 +19,17 @@ export default async function EditPropertyPage({
 
   return (
     <div className="max-w-2xl space-y-6">
-      <div>
-        <Link
-          href={`/properties/${property.id}`}
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Volver al detalle
-        </Link>
-      </div>
+      <PageHeader
+        icon={Building2}
+        eyebrow="Editar"
+        title="Editar propiedad"
+        description={`Modifica los datos de ${property.name}.`}
+        backHref={`/properties/${property.id}`}
+        backLabel="Volver al detalle"
+      />
 
       <Card>
-        <CardHeader>
-          <CardTitle>Editar propiedad</CardTitle>
-          <p className="text-sm text-muted-foreground">Modifica los datos de {property.name}.</p>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <PropertyForm property={property} />
         </CardContent>
       </Card>

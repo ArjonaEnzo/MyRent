@@ -20,7 +20,7 @@ export default async function DashboardLayout({
   const avatarUrl = profileResult.success ? (profileResult.data?.avatar_url ?? null) : null
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
+    <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar userEmail={email} avatarUrl={avatarUrl} />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header userEmail={email} />

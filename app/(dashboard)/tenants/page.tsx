@@ -4,6 +4,7 @@ import { Users, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { EmptyState } from '@/components/shared/EmptyState'
+import { FilterTabs } from '@/components/shared/FilterTabs'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getTenants, getArchivedTenants } from '@/lib/actions/tenants'
 import { TenantsGridClient } from '@/components/tenants/TenantsGridClient'
@@ -27,6 +28,8 @@ export default async function TenantsPage({ searchParams }: PageProps) {
   return (
     <div className="space-y-6 max-w-7xl">
       <PageHeader
+        icon={Users}
+        eyebrow="Contactos"
         title="Inquilinos"
         description={showArchived
           ? `${archived.length} ${archived.length === 1 ? 'inquilino archivado' : 'inquilinos archivados'}`
@@ -44,20 +47,13 @@ export default async function TenantsPage({ searchParams }: PageProps) {
         }
       />
 
-      <div className="flex gap-2 text-sm">
-        <Link
-          href="/tenants"
-          className={`px-3 py-1.5 rounded-md transition-colors ${!showArchived ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 font-medium' : 'text-muted-foreground hover:text-foreground'}`}
-        >
-          Activos
-        </Link>
-        <Link
-          href="/tenants?tab=archived"
-          className={`px-3 py-1.5 rounded-md transition-colors ${showArchived ? 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 font-medium' : 'text-muted-foreground hover:text-foreground'}`}
-        >
-          Archivados {archived.length > 0 ? `(${archived.length})` : ''}
-        </Link>
-      </div>
+      <FilterTabs
+        aria-label="Estado de inquilinos"
+        tabs={[
+          { label: 'Activos', href: '/tenants', active: !showArchived },
+          { label: 'Archivados', href: '/tenants?tab=archived', active: showArchived, count: archived.length },
+        ]}
+      />
 
       <Suspense fallback={<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({length:3}).map((_,i)=><Skeleton key={i} className="h-40 rounded-xl"/>)}</div>}>
         {showArchived ? (

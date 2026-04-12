@@ -65,6 +65,53 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica-Bold',
     color: '#1e40af',
   },
+  lineItemsTable: {
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  lineItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+    borderBottom: '1 solid #f3f4f6',
+  },
+  lineItemLabel: {
+    fontSize: 11,
+    color: '#374151',
+    flex: 1,
+  },
+  lineItemAmount: {
+    fontSize: 11,
+    fontFamily: 'Helvetica-Bold',
+    color: '#374151',
+    textAlign: 'right',
+    width: 120,
+  },
+  lineItemType: {
+    fontSize: 8,
+    color: '#9ca3af',
+    textTransform: 'uppercase' as const,
+    marginTop: 1,
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderTop: '2 solid #2563eb',
+    marginTop: 4,
+  },
+  totalLabel: {
+    fontSize: 13,
+    fontFamily: 'Helvetica-Bold',
+    color: '#1f2937',
+  },
+  totalAmount: {
+    fontSize: 13,
+    fontFamily: 'Helvetica-Bold',
+    color: '#1e40af',
+    textAlign: 'right',
+    width: 120,
+  },
   footer: {
     position: 'absolute',
     bottom: 40,
@@ -78,6 +125,12 @@ const styles = StyleSheet.create({
   },
 })
 
+interface LineItem {
+  label: string
+  amount: number
+  item_type: string
+}
+
 interface ReceiptPDFProps {
   recipientName: string
   recipientAddress: string | null
@@ -87,6 +140,7 @@ interface ReceiptPDFProps {
   date: string
   receiptId: string
   description?: string | null
+  lineItems?: LineItem[]
 }
 
 function formatCurrency(amount: number, currency: string) {
@@ -94,6 +148,14 @@ function formatCurrency(amount: number, currency: string) {
     return `$ ${amount.toLocaleString('es-AR', { minimumFractionDigits: 0 })}`
   }
   return `US$ ${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+}
+
+const ITEM_TYPE_LABELS: Record<string, string> = {
+  rent: 'Alquiler',
+  expensas: 'Expensas',
+  extra: 'Extra',
+  discount: 'Descuento',
+  tax: 'Impuesto',
 }
 
 export function ReceiptPDF({
@@ -105,7 +167,9 @@ export function ReceiptPDF({
   date,
   receiptId,
   description,
+  lineItems,
 }: ReceiptPDFProps) {
+  const hasLineItems = lineItems && lineItems.length > 0
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -144,19 +208,53 @@ export function ReceiptPDF({
           )}
         </View>
 
-        <View style={styles.amountBox}>
-          <Text style={styles.amountLabel}>MONTO TOTAL</Text>
-          <Text style={styles.amountValue}>{formatCurrency(amount, currency)}</Text>
-        </View>
+        {hasLineItems ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Detalle</Text>
+            <View style={styles.lineItemsTable}>
+              {lineItems.map((item, i) => (
+                <View key={i} style={styles.lineItemRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.lineItemLabel}>{item.label}</Text>
+                    <Text style={styles.lineItemType}>
+                      {ITEM_TYPE_LABELS[item.item_type] ?? item.item_type}
+                    </Text>
+                  </View>
+                  <Text style={styles.lineItemAmount}>
+                    {formatCurrency(item.amount, currency)}
+                  </Text>
+                </View>
+              ))}
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>TOTAL</Text>
+                <Text style={styles.totalAmount}>{formatCurrency(amount, currency)}</Text>
+              </View>
+            </View>
+          </View>
+        ) : (
+          <>
+            <View style={styles.amountBox}>
+              <Text style={styles.amountLabel}>MONTO TOTAL</Text>
+              <Text style={styles.amountValue}>{formatCurrency(amount, currency)}</Text>
+            </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Concepto</Text>
-          {description ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Concepto</Text>
+              {description ? (
+                <Text style={styles.value}>{description}</Text>
+              ) : (
+                <Text style={styles.value}>Alquiler correspondiente al período {period}</Text>
+              )}
+            </View>
+          </>
+        )}
+
+        {hasLineItems && description && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Observaciones</Text>
             <Text style={styles.value}>{description}</Text>
-          ) : (
-            <Text style={styles.value}>Alquiler correspondiente al período {period}</Text>
-          )}
-        </View>
+          </View>
+        )}
 
         <Text style={styles.footer}>
           Recibo generado automáticamente por MyRent | ID: {receiptId}

@@ -17,8 +17,21 @@ import {
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useLanguage } from '@/components/providers/language-provider'
+import { StatCard } from '@/components/shared/StatCard'
+import { MonthlyRevenueChart, type MonthlyRevenueData } from './MonthlyRevenueChart'
+import { CollectionPanel } from './CollectionPanel'
+import { OccupancyCard } from './OccupancyCard'
+import { OperationalAlerts, type LeaseAlert } from './OperationalAlerts'
 import { memo } from 'react'
 import { cn } from '@/lib/utils'
+
+const iconToTone: Record<string, 'primary' | 'emerald' | 'sky' | 'violet' | 'amber' | 'rose'> = {
+  Building2: 'primary',
+  Users: 'sky',
+  FileText: 'primary',
+  Receipt: 'primary',
+  BarChart3: 'amber',
+}
 
 const iconMap: Record<string, LucideIcon> = {
   Building2,
@@ -61,6 +74,23 @@ interface RecentReceipt {
   created_at: string
 }
 
+interface AnalyticsData {
+  revenueData: MonthlyRevenueData[]
+  revenueCurrency: string
+  collectionRate: {
+    totalReceipts: number
+    paidReceipts: number
+    totalExpected: number
+    totalCollected: number
+    currency: string
+  }
+  occupancy: {
+    totalProperties: number
+    occupiedProperties: number
+  }
+  alerts: LeaseAlert[]
+}
+
 const formatCurrency = (amount: number, currency: string) => {
   return new Intl.NumberFormat('es-AR', {
     style: 'currency',
@@ -84,6 +114,8 @@ interface DashboardContentProps {
   stats: Stat[]
   quickActions: QuickAction[]
   recentReceipts: RecentReceipt[]
+  draftReceiptsCount?: number
+  analytics?: AnalyticsData
 }
 
 export const DashboardContent = memo(function DashboardContent({
@@ -91,6 +123,8 @@ export const DashboardContent = memo(function DashboardContent({
   stats,
   quickActions,
   recentReceipts,
+  draftReceiptsCount = 0,
+  analytics,
 }: DashboardContentProps) {
   const { t } = useLanguage()
 
@@ -135,7 +169,7 @@ export const DashboardContent = memo(function DashboardContent({
           <Button
             asChild
             size="sm"
-            className="h-8 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white focus-visible:ring-emerald-500"
+            className="h-8 text-xs gap-1.5"
           >
             <Link href="/receipts/new">
               <Receipt className="h-3.5 w-3.5" aria-hidden />
@@ -145,52 +179,114 @@ export const DashboardContent = memo(function DashboardContent({
         </div>
       </motion.div>
 
+      {/* ── Draft receipts alert ────────────────────────────────────── */}
+      {draftReceiptsCount > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, delay: 0.03 }}
+        >
+          <Link
+            href="/receipts?status=draft"
+            className="flex items-center justify-between rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] px-5 py-4 transition-colors hover:bg-amber-500/[0.1]"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/15">
+                <FileStack className="h-4.5 w-4.5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+                  {draftReceiptsCount} {draftReceiptsCount === 1 ? 'borrador pendiente' : 'borradores pendientes'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Recibos auto-generados listos para revisión
+                </p>
+              </div>
+            </div>
+            <ArrowRight className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          </Link>
+        </motion.div>
+      )}
+
       {/* ── Metrics row ──────────────────────────────────────────────── */}
-      {/* Horizontally scrollable on mobile; 3-up on sm+ */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, delay: 0.05 }}
-        className="grid grid-cols-1 gap-2.5 sm:grid-cols-3"
+        className="grid grid-cols-1 gap-4 sm:grid-cols-3"
       >
         {stats.map((stat) => {
-          const Icon = iconMap[stat.icon]
+          const Icon = iconMap[stat.icon] ?? Building2
           return (
-            <Link
+            <StatCard
               key={stat.href}
+              label={stat.label}
+              value={stat.value}
+              subtitle={stat.subtitle}
+              icon={<Icon aria-hidden />}
               href={stat.href}
-              className="group block"
-              aria-label={`${stat.label}: ${stat.value}`}
-            >
-              <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-sm transition-all duration-150 hover:shadow-md hover:-translate-y-px">
-                {/* Icon */}
-                <div className={cn('rounded-md p-2 shrink-0', stat.bg)}>
-                  {Icon ? <Icon className={cn('h-4 w-4', stat.color)} aria-hidden /> : null}
-                </div>
-                {/* Value + label */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide truncate">
-                    {stat.label}
-                  </p>
-                  <p className="text-xl font-bold tabular-nums text-foreground leading-none mt-0.5">
-                    {stat.value}
-                  </p>
-                </div>
-                {/* Subtitle on the far right — hidden on very small screens */}
-                <p className="hidden md:block text-xs text-muted-foreground shrink-0">
-                  {stat.subtitle}
-                </p>
-              </div>
-            </Link>
+              tone={iconToTone[stat.icon] ?? 'primary'}
+            />
           )
         })}
       </motion.div>
+
+      {/* ── Analytics section ────────────────────────────────────────── */}
+      {analytics && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, delay: 0.08 }}
+          className="grid grid-cols-1 gap-4 lg:grid-cols-3"
+        >
+          {/* Revenue chart — 2/3 width */}
+          <div className="lg:col-span-2">
+            <MonthlyRevenueChart
+              data={analytics.revenueData}
+              currency={analytics.revenueCurrency}
+            />
+          </div>
+
+          {/* Collection panel — 1/3 width */}
+          <div>
+            <CollectionPanel {...analytics.collectionRate} />
+          </div>
+        </motion.div>
+      )}
+
+      {/* ── Occupancy + Alerts row ───────────────────────────────────── */}
+      {analytics && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, delay: 0.1 }}
+          className="grid grid-cols-1 gap-4 lg:grid-cols-3"
+        >
+          <div>
+            <OccupancyCard {...analytics.occupancy} />
+          </div>
+          <div className="lg:col-span-2">
+            {analytics.alerts.length > 0 ? (
+              <OperationalAlerts alerts={analytics.alerts} />
+            ) : (
+              <Card className="border border-border shadow-sm p-5 h-full flex items-center justify-center">
+                <div className="text-center">
+                  <p className="text-sm font-medium text-foreground">Sin alertas</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    No hay contratos próximos a vencer ni ajustes pendientes
+                  </p>
+                </div>
+              </Card>
+            )}
+          </div>
+        </motion.div>
+      )}
 
       {/* ── Main content: activity (2/3) + actions (1/3) ─────────────── */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2, delay: 0.1 }}
+        transition={{ duration: 0.2, delay: 0.13 }}
         className="grid grid-cols-1 gap-4 lg:grid-cols-3"
       >
         {/* Recent activity — takes 2/3 on desktop */}
@@ -205,7 +301,7 @@ export const DashboardContent = memo(function DashboardContent({
             {recentReceipts.length > 0 && (
               <Link
                 href="/receipts"
-                className="flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-400 hover:underline underline-offset-2 transition-colors"
+                className="flex items-center gap-1 text-xs font-medium text-primary hover:underline underline-offset-2 transition-colors"
               >
                 {t.dashboard.recentActivity.viewAll}
                 <ArrowRight className="h-3 w-3" aria-hidden />
@@ -227,7 +323,7 @@ export const DashboardContent = memo(function DashboardContent({
                 </div>
                 <Link
                   href="/receipts/new"
-                  className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+                  className="inline-flex items-center gap-1.5 rounded-md bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold px-3 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 >
                   <Plus className="h-3.5 w-3.5" aria-hidden />
                   Generar primer recibo
@@ -242,7 +338,7 @@ export const DashboardContent = memo(function DashboardContent({
                     key={receipt.id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ duration: 0.18, delay: 0.12 + index * 0.04 }}
+                    transition={{ duration: 0.18, delay: 0.15 + index * 0.04 }}
                   >
                     <Link
                       href={`/receipts/${receipt.id}`}

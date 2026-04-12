@@ -1,8 +1,9 @@
 import { getProperties } from '@/lib/actions/properties'
 import { getTenants } from '@/lib/actions/tenants'
 import { LeaseForm } from '@/components/leases/LeaseForm'
-import { ArrowLeft } from 'lucide-react'
+import { ScrollText } from 'lucide-react'
 import Link from 'next/link'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 export default async function NewLeasePage() {
   const [{ properties }, { tenants }] = await Promise.all([
@@ -12,22 +13,14 @@ export default async function NewLeasePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link
-          href="/receipts/new"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Volver
-        </Link>
-      </div>
-
-      <div>
-        <h1 className="text-2xl font-bold">Nuevo contrato</h1>
-        <p className="text-muted-foreground mt-1">
-          Asocia una propiedad con un inquilino y define las condiciones del alquiler.
-        </p>
-      </div>
+      <PageHeader
+        icon={ScrollText}
+        eyebrow="Nuevo"
+        title="Nuevo contrato"
+        description="Asocia una propiedad con un inquilino y define las condiciones del alquiler."
+        backHref="/leases"
+        backLabel="Volver a contratos"
+      />
 
       {properties.length === 0 ? (
         <p className="text-muted-foreground">

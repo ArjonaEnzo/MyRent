@@ -1,11 +1,12 @@
 import { getReceipt } from '@/lib/actions/receipts'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Download, User, MapPin, Calendar, Hash, Mail } from 'lucide-react'
+import { FileText, Download, User, MapPin, Calendar, Hash, Mail, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
+import { PageHeader } from '@/components/shared/PageHeader'
 import { ResendEmailButton } from '@/components/receipts/ResendEmailButton'
 import { SignatureStatus } from '@/components/receipts/SignatureStatus'
 
@@ -33,36 +34,47 @@ export default async function ReceiptDetailPage({
 
   return (
     <div className="max-w-2xl space-y-6">
-      <div>
-        <Link
-          href="/receipts"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Volver a recibos
-        </Link>
-      </div>
+      <PageHeader
+        icon={FileText}
+        eyebrow="Recibo"
+        title={`Recibo - ${receipt.period}`}
+        description={`Para ${receipt.snapshot_tenant_name}`}
+        backHref="/receipts"
+        backLabel="Volver a recibos"
+        action={
+          receipt.pdf_url ? (
+            <Button asChild>
+              <a href={receipt.pdf_url} target="_blank" rel="noopener noreferrer">
+                <Download className="mr-2 h-4 w-4" />
+                Descargar PDF
+              </a>
+            </Button>
+          ) : undefined
+        }
+      />
+
+      {receipt.status === 'draft' && (
+        <div className="flex items-center justify-between rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] px-5 py-4">
+          <div>
+            <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+              Borrador pendiente de revisión
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {receipt.auto_generated
+                ? 'Generado automáticamente. Revisá los conceptos antes de enviar.'
+                : 'Este recibo está en borrador.'}
+            </p>
+          </div>
+          <Button asChild size="sm" className="gap-1.5">
+            <Link href={`/receipts/${receipt.id}/edit`}>
+              <Pencil className="h-3.5 w-3.5" />
+              Editar borrador
+            </Link>
+          </Button>
+        </div>
+      )}
 
       <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div>
-              <CardTitle className="text-2xl">Recibo - {receipt.period}</CardTitle>
-              <p className="mt-1 text-muted-foreground">
-                Para {receipt.snapshot_tenant_name}
-              </p>
-            </div>
-            {receipt.pdf_url && (
-              <Button asChild>
-                <a href={receipt.pdf_url} target="_blank" rel="noopener noreferrer">
-                  <Download className="mr-2 h-4 w-4" />
-                  Descargar PDF
-                </a>
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <Separator />
         <CardContent className="pt-6 space-y-6">
           <Card className="border-primary/20 bg-primary/5">
             <CardContent className="pt-6 text-center">

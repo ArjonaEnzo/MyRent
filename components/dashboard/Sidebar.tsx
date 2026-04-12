@@ -60,13 +60,13 @@ export const Sidebar = memo(function Sidebar({ userEmail, avatarUrl }: SidebarPr
       animate={{ x: 0, opacity: 1 }}
       transition={{ duration: 0.25 }}
       className={cn(
-        'hidden lg:flex flex-col bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-950 text-sidebar-foreground border-r border-slate-200 dark:border-slate-700 transition-all duration-300 shadow-sm',
+        'hidden lg:flex flex-col bg-gradient-to-b from-card to-background text-foreground border-r border-border/60 transition-all duration-300 shadow-sm',
         collapsed ? 'w-[68px]' : 'w-64'
       )}
     >
-      <div className={cn('flex items-center h-16 px-4 border-b border-slate-200/60 dark:border-slate-700/60', collapsed ? 'justify-center' : 'justify-between')}>
+      <div className={cn('flex items-center h-16 px-4 border-b border-border/60', collapsed ? 'justify-center' : 'justify-between')}>
         {!collapsed && (
-          <Link href="/dashboard" className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+          <Link href="/dashboard" className="text-xl font-bold text-primary">
             MyRent
           </Link>
         )}
@@ -74,7 +74,7 @@ export const Sidebar = memo(function Sidebar({ userEmail, avatarUrl }: SidebarPr
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           onClick={toggleCollapsed}
-          className="p-1.5 rounded-md text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
+          className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
         >
           {collapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
         </motion.button>
@@ -95,15 +95,15 @@ export const Sidebar = memo(function Sidebar({ userEmail, avatarUrl }: SidebarPr
                 className={cn(
                   'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all relative overflow-hidden group',
                   isActive
-                    ? 'bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 text-emerald-700 dark:text-emerald-400 shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-gradient-to-r hover:from-emerald-50/50 hover:to-teal-50/50 dark:hover:from-emerald-900/20 dark:hover:to-teal-900/20',
+                    ? 'bg-primary/10 text-primary shadow-sm'
+                    : 'text-muted-foreground hover:text-primary hover:bg-primary/5',
                   collapsed && 'justify-center px-2'
                 )}
               >
                 {isActive && (
                   <motion.div
                     layoutId="activeNav"
-                    className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-500 to-teal-600 rounded-r-full"
+                    className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r-full"
                     transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                   />
                 )}
@@ -131,18 +131,18 @@ export const Sidebar = memo(function Sidebar({ userEmail, avatarUrl }: SidebarPr
         })}
       </nav>
 
-      <div className={cn('border-t border-slate-200/60 dark:border-slate-700/60 p-3 bg-gradient-to-b from-transparent to-slate-50/50 dark:to-slate-900/50', collapsed ? 'flex justify-center' : '')}>
+      <div className={cn('border-t border-border/60 p-3', collapsed ? 'flex justify-center' : '')}>
         <Link href="/account">
           <motion.div
             whileHover={{ scale: 1.05 }}
             transition={{ duration: 0.2 }}
-            className={cn('flex items-center gap-3 rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors', collapsed && 'justify-center')}
+            className={cn('flex items-center gap-3 rounded-lg p-1.5 hover:bg-muted transition-colors', collapsed && 'justify-center')}
           >
-            <div className="relative h-8 w-8 rounded-full overflow-hidden shrink-0 shadow-md ring-1 ring-slate-200 dark:ring-slate-700">
+            <div className="relative h-8 w-8 rounded-full overflow-hidden shrink-0 shadow-md ring-1 ring-border">
               {avatarUrl ? (
                 <Image src={avatarUrl} alt="Avatar" fill className="object-cover" unoptimized />
               ) : (
-                <div className="h-full w-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-xs font-medium text-white">
+                <div className="h-full w-full bg-primary flex items-center justify-center text-xs font-medium text-primary-foreground">
                   {initials}
                 </div>
               )}
@@ -154,7 +154,7 @@ export const Sidebar = memo(function Sidebar({ userEmail, avatarUrl }: SidebarPr
                   animate={{ opacity: 1, width: 'auto' }}
                   exit={{ opacity: 0, width: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="text-xs text-slate-500 dark:text-slate-400 font-medium overflow-hidden whitespace-nowrap"
+                  className="text-xs text-muted-foreground font-medium overflow-hidden whitespace-nowrap"
                 >
                   Mi cuenta
                 </motion.span>

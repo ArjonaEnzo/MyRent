@@ -150,7 +150,7 @@ export function AccountContent({ profile }: AccountContentProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+        <h1 className="text-3xl font-bold tracking-tight text-primary">
           {t.account.title}
         </h1>
         <p className="text-muted-foreground mt-2">{t.account.subtitle}</p>
@@ -165,8 +165,8 @@ export function AccountContent({ profile }: AccountContentProps) {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-                <User className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              <div className="p-2 rounded-lg bg-primary/10">
+                <User className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <CardTitle>{t.account.profile.title}</CardTitle>
@@ -193,7 +193,7 @@ export function AccountContent({ profile }: AccountContentProps) {
                       unoptimized
                     />
                   ) : (
-                    <div className="h-full w-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-2xl font-semibold text-white">
+                    <div className="h-full w-full bg-primary flex items-center justify-center text-2xl font-semibold text-white">
                       {initials}
                     </div>
                   )}
@@ -223,7 +223,7 @@ export function AccountContent({ profile }: AccountContentProps) {
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploadingAvatar}
-                  className="mt-1.5 text-xs text-emerald-600 dark:text-emerald-400 hover:underline disabled:opacity-50"
+                  className="mt-1.5 text-xs text-primary hover:underline disabled:opacity-50"
                 >
                   {isUploadingAvatar ? 'Subiendo...' : 'Cambiar foto'}
                 </button>
@@ -245,7 +245,7 @@ export function AccountContent({ profile }: AccountContentProps) {
               <Button
                 type="submit"
                 disabled={isUpdatingProfile || fullName === profile.fullName}
-                className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
+                className="bg-primary hover:bg-primary/90"
               >
                 {isUpdatingProfile ? t.account.profile.saving : t.account.profile.save}
               </Button>
@@ -263,8 +263,8 @@ export function AccountContent({ profile }: AccountContentProps) {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                <Mail className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Mail className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <CardTitle>{t.account.email.title}</CardTitle>
@@ -281,7 +281,7 @@ export function AccountContent({ profile }: AccountContentProps) {
                   type="email"
                   value={profile.email}
                   disabled
-                  className="bg-slate-50 dark:bg-slate-900"
+                  className="bg-muted"
                 />
               </div>
               <div className="space-y-2">
@@ -309,7 +309,7 @@ export function AccountContent({ profile }: AccountContentProps) {
               <Button
                 type="submit"
                 disabled={isUpdatingEmail || !newEmail || !emailPassword}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                className="bg-primary hover:bg-primary/90"
               >
                 {isUpdatingEmail ? t.account.email.saving : t.account.email.save}
               </Button>
@@ -405,10 +405,10 @@ export function AccountContent({ profile }: AccountContentProps) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <h3 className="text-sm font-medium text-slate-900 dark:text-slate-100">
+              <h3 className="text-sm font-medium text-foreground">
                 {t.account.danger.delete}
               </h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 {t.account.danger.deleteDesc}
               </p>
             </div>

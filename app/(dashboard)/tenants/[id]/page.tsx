@@ -1,10 +1,11 @@
 import { getTenant } from '@/lib/actions/tenants'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Pencil, Calendar, Mail, IdCard, Phone, Archive } from 'lucide-react'
+import { Users, Pencil, Calendar, IdCard, Phone, Archive } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import { PageHeader } from '@/components/shared/PageHeader'
 import { DeleteTenantButton } from '@/components/tenants/DeleteTenantButton'
 import { ReactivateTenantButton } from '@/components/tenants/ReactivateTenantButton'
 import { InviteTenantButton } from '@/components/tenants/InviteTenantButton'
@@ -25,15 +26,24 @@ export default async function TenantDetailPage({
 
   return (
     <div className="max-w-2xl space-y-6">
-      <div>
-        <Link
-          href="/tenants"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Volver a inquilinos
-        </Link>
-      </div>
+      <PageHeader
+        icon={Users}
+        eyebrow="Inquilino"
+        title={tenant.full_name}
+        description={tenant.email || undefined}
+        backHref="/tenants"
+        backLabel="Volver a inquilinos"
+        action={
+          !isArchived ? (
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/tenants/${tenant.id}/edit`}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar
+              </Link>
+            </Button>
+          ) : undefined
+        }
+      />
 
       {isArchived && (
         <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 px-4 py-3">
@@ -46,28 +56,6 @@ export default async function TenantDetailPage({
       )}
 
       <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div>
-              <CardTitle className="text-2xl">{tenant.full_name}</CardTitle>
-              {tenant.email && (
-                <p className="mt-1 text-muted-foreground flex items-center gap-1.5">
-                  <Mail className="h-4 w-4" />
-                  {tenant.email}
-                </p>
-              )}
-            </div>
-            {!isArchived && (
-              <Button asChild variant="outline" size="sm">
-                <Link href={`/tenants/${tenant.id}/edit`}>
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Editar
-                </Link>
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <Separator />
         <CardContent className="pt-6 space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {tenant.phone && (

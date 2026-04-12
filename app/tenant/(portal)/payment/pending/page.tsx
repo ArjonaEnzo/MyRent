@@ -31,10 +31,10 @@ export default function PaymentPendingPage() {
       </div>
 
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+        <h1 className="text-2xl font-bold text-foreground">
           Pago en proceso
         </h1>
-        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+        <p className="mt-2 text-sm text-muted-foreground">
           Tu pago está siendo procesado por Mercado Pago.
           <br />
           Si elegiste un medio de pago en efectivo, abonalo antes de que expire.
@@ -45,7 +45,7 @@ export default function PaymentPendingPage() {
 
       <Link
         href="/tenant/dashboard"
-        className="rounded-md bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
+        className="rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
       >
         Volver a mi portal
       </Link>

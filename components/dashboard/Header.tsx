@@ -42,7 +42,7 @@ export const Header = memo(function Header({ userEmail }: HeaderProps) {
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.25, delay: 0.05 }}
-      className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200/60 dark:border-slate-700/60 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm px-4 sm:px-6 shadow-sm"
+      className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/60 bg-card/80 backdrop-blur-sm px-4 sm:px-6 shadow-sm"
     >
       <MobileSidebar />
 
@@ -57,11 +57,11 @@ export const Header = memo(function Header({ userEmail }: HeaderProps) {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Button variant="ghost" className="gap-2 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20">
-              <div className="h-7 w-7 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-xs font-medium text-white shadow-md">
+            <Button variant="ghost" className="gap-2 hover:bg-primary/5">
+              <div className="h-7 w-7 rounded-full bg-primary flex items-center justify-center text-xs font-medium text-primary-foreground shadow-md">
                 {initials}
               </div>
-              <span className="hidden sm:inline text-sm text-slate-700 dark:text-slate-300 font-medium">
+              <span className="hidden sm:inline text-sm text-foreground font-medium">
                 {userEmail}
               </span>
             </Button>
@@ -69,7 +69,7 @@ export const Header = memo(function Header({ userEmail }: HeaderProps) {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuLabel className="font-normal">
-            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{userEmail}</p>
+            <p className="text-sm font-medium text-foreground">{userEmail}</p>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>

@@ -15,7 +15,7 @@ export const ThemeToggle = memo(function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <div className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-800 animate-pulse" />
+      <div className="h-9 w-9 rounded-lg bg-muted animate-pulse" />
     )
   }
 
@@ -26,7 +26,7 @@ export const ThemeToggle = memo(function ThemeToggle() {
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
-      className="relative h-9 w-9 rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center hover:from-emerald-100 hover:to-teal-100 dark:hover:from-emerald-900/20 dark:hover:to-teal-900/20 transition-all duration-300 shadow-sm border border-slate-200 dark:border-slate-700"
+      className="relative h-9 w-9 rounded-lg bg-muted flex items-center justify-center hover:bg-primary/10 transition-all duration-300 shadow-sm border border-border/60"
       aria-label="Toggle theme"
     >
       <motion.div
@@ -51,7 +51,7 @@ export const ThemeToggle = memo(function ThemeToggle() {
         transition={{ duration: 0.3 }}
         className="absolute"
       >
-        <Moon className="h-4 w-4 text-slate-200" />
+        <Moon className="h-4 w-4 text-foreground" />
       </motion.div>
     </motion.button>
   )

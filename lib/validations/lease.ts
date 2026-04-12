@@ -28,6 +28,16 @@ export const leaseSchema = z.object({
     .string()
     .max(1000, 'Las notas no pueden exceder 1000 caracteres')
     .optional(),
+  // Facturación automática
+  billing_day: z
+    .number()
+    .int()
+    .min(1, 'El día debe ser entre 1 y 28')
+    .max(28, 'El día debe ser entre 1 y 28')
+    .default(1),
+  auto_billing_enabled: z
+    .boolean()
+    .default(false),
   // Configuración de ajustes
   adjustment_type: z
     .enum(['none', 'percentage', 'index', 'fixed_amount'])

@@ -65,7 +65,7 @@ function PropertyCard({ property, isOverlay = false }: { property: Property; isO
           </div>
         )}
         {property.active_lease && (
-          <div className="absolute top-2 right-2 bg-emerald-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full shadow-sm">
+          <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs font-semibold px-2 py-0.5 rounded-full shadow-sm">
             Activo
           </div>
         )}
@@ -79,8 +79,8 @@ function PropertyCard({ property, isOverlay = false }: { property: Property; isO
           <span className="truncate">{property.address}</span>
         </p>
         {property.active_lease ? (
-          <p className="mt-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+          <p className="mt-1.5 text-xs font-medium text-primary flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
             <span className="truncate">{property.active_lease.tenant_name ?? 'Inquilino activo'}</span>
           </p>
         ) : (

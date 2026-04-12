@@ -24,6 +24,8 @@ interface LeaseFormProps {
     rent_amount: number
     currency: string
     notes: string | null
+    billing_day?: number
+    auto_billing_enabled?: boolean
     adjustment_type?: string | null
     adjustment_frequency_months?: number | null
     adjustment_percentage?: number | null
@@ -48,6 +50,7 @@ export function LeaseForm({ properties, tenants, lease }: LeaseFormProps) {
   const [adjustmentType, setAdjustmentType] = useState<string>(
     lease?.adjustment_type ?? 'none'
   )
+  const [autoBilling, setAutoBilling] = useState(lease?.auto_billing_enabled ?? false)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -62,6 +65,8 @@ export function LeaseForm({ properties, tenants, lease }: LeaseFormProps) {
     const adjPct = data.get('adjustment_percentage')
     const adjFixed = data.get('adjustment_fixed_amount')
 
+    const billingDay = data.get('billing_day')
+
     const formData = {
       property_id: data.get('property_id') as string,
       tenant_id: data.get('tenant_id') as string,
@@ -70,6 +75,8 @@ export function LeaseForm({ properties, tenants, lease }: LeaseFormProps) {
       rent_amount: Number(data.get('rent_amount')),
       currency: data.get('currency') as 'ARS' | 'USD',
       notes: (data.get('notes') as string) || undefined,
+      billing_day: billingDay ? Number(billingDay) : 1,
+      auto_billing_enabled: autoBilling,
       adjustment_type: adjType as 'none' | 'percentage' | 'index' | 'fixed_amount',
       adjustment_frequency_months: adjFreq ? Number(adjFreq) : undefined,
       adjustment_percentage: adjPct ? Number(adjPct) : undefined,
@@ -139,6 +146,51 @@ export function LeaseForm({ properties, tenants, lease }: LeaseFormProps) {
             <option value="USD">USD — Dólares</option>
           </select>
         </div>
+      </div>
+
+      {/* ── Facturación automática ── */}
+      <div className="space-y-4 rounded-lg border border-dashed p-4">
+        <div>
+          <p className="text-sm font-medium">Facturación automática</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Se generará un borrador de recibo cada mes para que lo revises y envíes.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            id="auto_billing_enabled"
+            checked={autoBilling}
+            onChange={(e) => setAutoBilling(e.target.checked)}
+            className="h-4 w-4 rounded border-input"
+          />
+          <Label htmlFor="auto_billing_enabled" className="cursor-pointer">
+            Generar recibos automáticamente
+          </Label>
+        </div>
+
+        {autoBilling && (
+          <div className="space-y-2">
+            <Label htmlFor="billing_day">Día de facturación (1-28)</Label>
+            <Input
+              id="billing_day"
+              name="billing_day"
+              type="number"
+              min={1}
+              max={28}
+              defaultValue={lease?.billing_day ?? 1}
+              required
+            />
+            <p className="text-xs text-muted-foreground">
+              Cada mes, el día indicado se generará un borrador del recibo.
+            </p>
+          </div>
+        )}
+
+        {!autoBilling && (
+          <input type="hidden" name="billing_day" value={lease?.billing_day ?? 1} />
+        )}
       </div>
 
       {/* ── Sección de ajustes ── */}

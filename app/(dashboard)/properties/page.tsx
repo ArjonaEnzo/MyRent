@@ -4,6 +4,7 @@ import { Building2, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { EmptyState } from '@/components/shared/EmptyState'
+import { FilterTabs } from '@/components/shared/FilterTabs'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getProperties, getArchivedProperties } from '@/lib/actions/properties'
 import { PropertiesGridClient } from '@/components/properties/PropertiesGridClient'
@@ -27,6 +28,8 @@ export default async function PropertiesPage({ searchParams }: PageProps) {
   return (
     <div className="space-y-6 max-w-7xl">
       <PageHeader
+        icon={Building2}
+        eyebrow="Portfolio"
         title="Propiedades"
         description={showArchived
           ? `${archived.length} ${archived.length === 1 ? 'propiedad archivada' : 'propiedades archivadas'}`
@@ -44,20 +47,13 @@ export default async function PropertiesPage({ searchParams }: PageProps) {
         }
       />
 
-      <div className="flex gap-2 text-sm">
-        <Link
-          href="/properties"
-          className={`px-3 py-1.5 rounded-md transition-colors ${!showArchived ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 font-medium' : 'text-muted-foreground hover:text-foreground'}`}
-        >
-          Activas
-        </Link>
-        <Link
-          href="/properties?tab=archived"
-          className={`px-3 py-1.5 rounded-md transition-colors ${showArchived ? 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 font-medium' : 'text-muted-foreground hover:text-foreground'}`}
-        >
-          Archivadas {archived.length > 0 ? `(${archived.length})` : ''}
-        </Link>
-      </div>
+      <FilterTabs
+        aria-label="Estado de propiedades"
+        tabs={[
+          { label: 'Activas', href: '/properties', active: !showArchived },
+          { label: 'Archivadas', href: '/properties?tab=archived', active: showArchived, count: archived.length },
+        ]}
+      />
 
       <Suspense fallback={<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({length:3}).map((_,i)=><Skeleton key={i} className="h-56 rounded-xl"/>)}</div>}>
         {showArchived ? (

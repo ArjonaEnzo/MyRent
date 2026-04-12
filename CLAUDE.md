@@ -42,6 +42,7 @@ Before reporting any task complete: run `pnpm test` and `pnpm type-check`.
 - `app/(dashboard)/` — Protected routes: dashboard, properties, tenants, leases, receipts (CRUD pages). Middleware redirects unauthenticated users to `/login`.
 - `app/tenant/` — Tenant portal: `login/`, `(portal)/dashboard/`, `(portal)/payment/{success,failure,pending}/`. Middleware redirects unauthenticated tenants to `/tenant/login`. Tenants are linked to auth users via `tenants.auth_user_id`.
 - `app/api/webhooks/` — External webhook handlers: `hellosign/route.ts` (digital signatures), `mercadopago/route.ts` (payment callbacks).
+- `app/api/cron/` — Vercel Cron endpoints: `generate-receipts/route.ts` (daily draft receipt generation for auto-billing leases).
 
 > **Two auth contexts**: Staff users authenticate via `getCurrentUserWithAccount()` from `lib/supabase/auth.ts`. Tenant portal users authenticate via `getCurrentTenant()` from `lib/supabase/tenant-auth.ts` — returns `{ user, tenantId, accountId, supabase }`. Staff logins and tenant logins share the same Supabase Auth instance but are separated by RLS policies. Never mix the two contexts in the same action.
 
@@ -93,7 +94,6 @@ import { isRedirectError } from 'next/dist/client/components/redirect'
 - **`lib/pdf/receipt-template.tsx`** — React PDF component for receipt generation.
 - **`lib/email/receipt-email.ts`** — Sends receipt email via Resend with PDF download link.
 - **`lib/signatures/hellosign-client.ts`** — HelloSign (Dropbox Sign) client for digital signatures.
-- **`lib/payments/mercadopago-client.ts`** — Mercado Pago client: `createCheckoutPreference()`, `getPaymentDetails()`, `verifyWebhookSignature()`, `mapMPStatus()`. Sandbox detected by `token.startsWith('TEST-')`.
 - **`lib/env.ts`** — Zod-validated environment variables.
 - **`components/`** — Organized by domain: `ui/` (Shadcn), `dashboard/`, `properties/`, `tenants/`, `leases/`, `receipts/`, `account/`, `tenant/` (portal), `providers/`, `shared/`.
 - **`types/database.types.ts`** — Auto-generated Supabase types + hand-written domain types at the top (`AccountRole`, `LeaseStatus`, `ReceiptStatus`, etc.). Regenerate DB types with: `npx supabase gen types typescript --project-id "PROJECT_REF" > types/database.types.ts`
@@ -131,12 +131,13 @@ Active tables (reflected in `types/database.types.ts`):
 | `properties`        | `id`, `account_id`, `name`, `address`, `cover_image_url`, soft-delete fields                                                                                                             |
 | `property_images`   | `id`, `account_id`, `property_id`, `storage_path`, `url`, `is_cover`, `position`                                                                                                         |
 | `tenants`           | `id`, `account_id`, `property_id`, `full_name`, `email`, `dni_cuit`, `auth_user_id` (nullable, links to Supabase Auth for portal access), soft-delete fields                             |
-| `leases`            | `id`, `account_id`, `property_id`, `tenant_id`, `status`, `rent_amount`, `currency`, `start_date`, `end_date`, adjustment config fields, soft-delete fields                              |
+| `leases`            | `id`, `account_id`, `property_id`, `tenant_id`, `status`, `rent_amount`, `currency`, `start_date`, `end_date`, adjustment config fields, `auto_billing_enabled`, `billing_day`, soft-delete fields |
 | `lease_adjustments` | `id`, `account_id`, `lease_id`, `adjustment_type`, `previous_amount`, `new_amount`, `effective_date`                                                                                     |
 | `receipts`          | `id`, `account_id`, `lease_id`, `tenant_id`, `property_id`, `period` (YYYY-MM), `status`, snapshot fields, `pdf_url`, `storage_path`, `email_sent`, signature fields, soft-delete fields |
 | `payments`          | `id`, `account_id`, `receipt_id`, `amount`, `currency`, `status`, `paid_at`, `provider` (`manual`\|`mercadopago`), `provider_payment_id`, `provider_status`, `checkout_url`, `external_reference`, `initiated_by_user_id`, `metadata`, soft-delete fields |
 | `payment_events`    | Immutable webhook log: `provider`, `provider_event_id` (UNIQUE — idempotency key), `event_type`, `event_data`, `processed_at` — mirrors `signature_events` pattern, prevents double-processing |
 | `audit_logs`        | `id`, `account_id`, `entity_type`, `entity_id`, `action`, `actor_user_id`, `metadata`                                                                                                    |
+| `receipt_line_items` | `id`, `receipt_id`, `account_id`, `label`, `amount`, `item_type`, `sort_order` — itemized charges on draft receipts                                                                     |
 | `signature_events`  | audit trail for HelloSign webhook events                                                                                                                                                 |
 
 Soft deletes use `deleted_at` / `deleted_by` / `delete_reason` columns — filter with `.is('deleted_at', null)` or use the `*_overview` DB views which already filter soft-deleted rows. Prefer views for reads; use raw tables when you need soft-delete fields explicitly.
@@ -189,7 +190,13 @@ SignatureStatus =
 
 `createReceipt()` action: validate input → rate-limit check → fetch lease+tenant (snapshot data) → generate PDF → upload to Supabase Storage → save receipt to DB → send email. If DB insert fails, uploaded PDF is cleaned up. Receipts now require a `lease_id` FK.
 
+**Draft receipts with line items**: Receipts start as `draft` status. Staff can add/update/remove itemized charges (`receipt_line_items`) via `addLineItem()`, `updateLineItem()`, `removeLineItem()` before calling `finalizeReceipt()` to generate the PDF and transition to `generated` status. The `DraftReceiptEditor` component provides the editing UI.
+
 Staff can also record offline payments (cash/transfer) via `registerManualPayment()`, which calls the `register_payment` DB RPC atomically.
+
+## Automated Billing (Vercel Cron)
+
+`/api/cron/generate-receipts` runs daily at 08:00 UTC (05:00 ART) via Vercel Cron (`vercel.json`). It generates draft receipts for active leases with `auto_billing_enabled = true` where `billing_day` matches today's day in Argentina timezone. Protected by `CRON_SECRET` env var (Vercel sends `Authorization: Bearer <CRON_SECRET>`).
 
 ## Digital Signatures Flow (Optional)
 
@@ -222,3 +229,16 @@ Required in `.env.local`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON
 Optional (for digital signatures): `HELLOSIGN_API_KEY`, `HELLOSIGN_CLIENT_ID`.
 
 Optional (for Mercado Pago tenant payments): `MERCADOPAGO_ACCESS_TOKEN` (use `TEST-…` prefix for sandbox — sandbox vs prod is auto-detected from this prefix), `MERCADOPAGO_WEBHOOK_SECRET` (required in production for HMAC signature verification; if absent in dev, verification is skipped).
+
+Optional (for Vercel Cron): `CRON_SECRET` (authorizes `/api/cron/*` endpoints).
+
+## Deployment (Vercel)
+
+Vercel auto-detects pnpm from `pnpm-lock.yaml`.
+
+**Checklist before first deploy:**
+- Apply `supabase/migrations/20260404000002_views_functions_provisioning.sql` — creates all views, RPCs, RLS policies, and the `handle_new_user()` provisioning trigger
+- Set all required env vars in Vercel dashboard
+- Configure HelloSign webhook URL if using digital signatures
+- Configure Mercado Pago webhook URL (`/api/webhooks/mercadopago`) if using tenant payments
+- Enable Supabase Storage bucket `receipts` (private, RLS on)

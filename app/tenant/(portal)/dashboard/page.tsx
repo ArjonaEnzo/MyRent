@@ -1,6 +1,9 @@
 import { getCurrentTenant } from '@/lib/supabase/tenant-auth'
 import { PayReceiptButton } from '@/components/tenant/PayReceiptButton'
 import { env } from '@/lib/env'
+import { PageHeader } from '@/components/shared/PageHeader'
+import { EmptyState } from '@/components/shared/EmptyState'
+import { StatCard } from '@/components/shared/StatCard'
 import {
   MapPin,
   CalendarDays,
@@ -9,14 +12,19 @@ import {
   Clock,
   XCircle,
   ChevronRight,
+  LayoutDashboard,
+  DollarSign,
+  Receipt,
+  TrendingUp,
+  Bell,
 } from 'lucide-react'
 import type { Database } from '@/types/database.types'
 import { formatPeriod, formatDate } from '@/lib/utils/format'
+import { computeNextBillingDate, computeNextAdjustmentDate, formatBillingDayMonth } from '@/lib/utils/lease-billing'
 
 type LeaseOverview = Database['public']['Views']['leases_overview']['Row']
 type ReceiptRow = Database['public']['Tables']['receipts']['Row']
 
-// Formatea solo el número (sin símbolo de moneda) — la UI muestra el símbolo por separado
 function formatAmount(amount: number): string {
   return new Intl.NumberFormat('es-AR', {
     minimumFractionDigits: 0,
@@ -61,8 +69,6 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-// ── Page ───────────────────────────────────────────────────────────────────
-
 export default async function TenantDashboardPage() {
   const { tenantId, accountId, supabase } = await getCurrentTenant()
   const mpEnabled = Boolean(env.MERCADOPAGO_ACCESS_TOKEN)
@@ -92,78 +98,120 @@ export default async function TenantDashboardPage() {
   const totalPending = pendingReceipts.reduce((sum, r) => sum + (r.snapshot_amount ?? 0), 0)
   const pendingCurrency = pendingReceipts[0]?.snapshot_currency ?? 'ARS'
 
-  // ── Render ──────────────────────────────────────────────────────────────
-
   return (
-    <div className="space-y-8 text-slate-200">
+    <div className="space-y-8">
+      <PageHeader
+        icon={LayoutDashboard}
+        eyebrow="Portal"
+        title="Mi dashboard"
+        description="Resumen de tus contratos y pagos"
+      />
 
-      {/* ── Summary hero ── */}
-      {pendingReceipts.length > 0 && (
-        <div className="relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/15 to-emerald-600/[0.08] p-6">
-          {/* Decorative glow */}
-          <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.15)_0%,transparent_70%)]" />
-          <p className="text-xs font-medium uppercase tracking-widest text-emerald-400/70">
-            Total pendiente
-          </p>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-sm font-medium text-emerald-400/60">
-              {pendingCurrency}
-            </span>
-            <span className="text-4xl font-bold tabular-nums tracking-tight text-white">
-              {formatAmount(totalPending)}
-            </span>
-          </div>
-          <p className="mt-1 text-xs text-white/35">
-            {pendingReceipts.length === 1
-              ? '1 recibo sin pagar'
-              : `${pendingReceipts.length} recibos sin pagar`}
-          </p>
-        </div>
-      )}
+      {/* Summary stats */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard
+          label="Total pendiente"
+          value={`${pendingCurrency} ${formatAmount(totalPending)}`}
+          icon={<DollarSign aria-hidden />}
+          tone="amber"
+        />
+        <StatCard
+          label="Recibos pendientes"
+          value={String(pendingReceipts.length)}
+          icon={<Receipt aria-hidden />}
+          tone="sky"
+        />
+        <StatCard
+          label="Contratos activos"
+          value={String(leases?.length ?? 0)}
+          icon={<MapPin aria-hidden />}
+          tone="primary"
+        />
+      </div>
 
-      {/* ── Active leases ── */}
+      {/* Active leases */}
       <section>
         <SectionHeader icon={MapPin} title="Contratos activos" />
 
         {!leases?.length ? (
-          <EmptyState message="No tenés contratos activos." />
+          <EmptyState
+            icon={MapPin}
+            title="Sin contratos activos"
+            description="No tenés contratos activos."
+          />
         ) : (
           <div className="space-y-3">
             {(leases as LeaseOverview[]).map((lease) => (
               <div
                 key={lease.id}
-                className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-5"
+                className="rounded-2xl border border-border/60 bg-card p-5"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <p className="truncate font-semibold text-white">
+                    <p className="truncate font-semibold text-foreground">
                       {lease.property_name ?? 'Propiedad'}
                     </p>
                     {lease.property_address && (
-                      <p className="mt-0.5 flex items-center gap-1 text-xs text-white/40">
+                      <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
                         <MapPin className="h-3 w-3 shrink-0" />
                         {lease.property_address}
                       </p>
                     )}
                   </div>
                   <div className="shrink-0 text-right">
-                    <p className="text-xl font-bold tabular-nums text-white">
+                    <p className="text-xl font-bold tabular-nums text-foreground">
                       {formatAmount(lease.rent_amount ?? 0)}
                     </p>
-                    <p className="text-xs text-white/35">
+                    <p className="text-xs text-muted-foreground">
                       {lease.currency ?? 'ARS'}/mes
                     </p>
                   </div>
                 </div>
 
-                <div className="mt-4 flex items-center gap-1.5 text-xs text-white/35">
-                  <CalendarDays className="h-3.5 w-3.5" />
-                  <span>
-                    Desde {formatDate(lease.start_date as string)}
-                    {lease.end_date
-                      ? ` · Hasta ${formatDate(lease.end_date as string)}`
-                      : ' · Sin fecha de fin'}
-                  </span>
+                <div className="mt-4 flex flex-col gap-2">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <CalendarDays className="h-3.5 w-3.5" />
+                    <span>
+                      Desde {formatDate(lease.start_date as string)}
+                      {lease.end_date
+                        ? ` · Hasta ${formatDate(lease.end_date as string)}`
+                        : ' · Sin fecha de fin'}
+                    </span>
+                  </div>
+
+                  {/* Next billing date */}
+                  {lease.billing_day && lease.auto_billing_enabled && (
+                    <div className="flex items-center gap-1.5 text-xs text-primary">
+                      <Bell className="h-3.5 w-3.5" />
+                      <span>
+                        Próximo cobro: {formatBillingDayMonth(computeNextBillingDate(lease.billing_day))}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Upcoming adjustment alert */}
+                  {lease.adjustment_type && lease.adjustment_frequency_months && lease.start_date && (() => {
+                    const nextAdj = computeNextAdjustmentDate(
+                      lease.start_date,
+                      lease.adjustment_frequency_months,
+                    )
+                    if (!nextAdj) return null
+                    const daysUntil = Math.ceil((nextAdj.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                    if (daysUntil > 60 || daysUntil < 0) return null
+                    return (
+                      <div className="flex items-center gap-1.5 rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-700 dark:text-amber-400">
+                        <TrendingUp className="h-3.5 w-3.5 shrink-0" />
+                        <span>
+                          Ajuste de alquiler el {formatBillingDayMonth(nextAdj)}
+                          {lease.adjustment_type === 'percentage' && lease.adjustment_percentage
+                            ? ` (+${lease.adjustment_percentage}%)`
+                            : lease.adjustment_type === 'index' && lease.adjustment_index
+                              ? ` (${lease.adjustment_index})`
+                              : ''}
+                        </span>
+                      </div>
+                    )
+                  })()}
                 </div>
               </div>
             ))}
@@ -171,7 +219,7 @@ export default async function TenantDashboardPage() {
         )}
       </section>
 
-      {/* ── Pending receipts ── */}
+      {/* Pending receipts */}
       <section>
         <SectionHeader
           icon={FileText}
@@ -180,7 +228,11 @@ export default async function TenantDashboardPage() {
         />
 
         {!pendingReceipts.length ? (
-          <EmptyState message="Todo al día. No tenés recibos pendientes." check />
+          <EmptyState
+            icon={CheckCircle2}
+            title="Todo al día"
+            description="No tenés recibos pendientes."
+          />
         ) : (
           <div className="space-y-3">
             {(pendingReceipts as ReceiptRow[]).map((receipt) => (
@@ -190,7 +242,7 @@ export default async function TenantDashboardPage() {
               >
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">
-                    <p className="font-semibold capitalize text-white">
+                    <p className="font-semibold capitalize text-foreground">
                       {formatPeriod(receipt.period)}
                     </p>
                     <div className="mt-1.5 flex items-center gap-2">
@@ -198,10 +250,10 @@ export default async function TenantDashboardPage() {
                     </div>
                   </div>
                   <div className="shrink-0 text-right">
-                    <p className="text-xl font-bold tabular-nums text-white">
+                    <p className="text-xl font-bold tabular-nums text-foreground">
                       {formatAmount(receipt.snapshot_amount)}
                     </p>
-                    <p className="text-xs text-white/35">
+                    <p className="text-xs text-muted-foreground">
                       {receipt.snapshot_currency}
                     </p>
                   </div>
@@ -214,7 +266,7 @@ export default async function TenantDashboardPage() {
                         href={receipt.pdf_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.05] px-3 py-1.5 text-xs font-medium text-white/60 transition-all hover:opacity-80"
+                        className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-all hover:text-foreground"
                       >
                         <FileText className="h-3 w-3" />
                         Ver PDF
@@ -236,31 +288,31 @@ export default async function TenantDashboardPage() {
         )}
       </section>
 
-      {/* ── Payment history ── */}
+      {/* Payment history */}
       {paidReceipts.length > 0 && (
         <section>
           <SectionHeader icon={CheckCircle2} title="Historial de pagos" />
-          <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.025]">
+          <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
             {(paidReceipts as ReceiptRow[]).map((receipt) => (
               <div
                 key={receipt.id}
-                className="flex items-center justify-between border-t border-white/[0.05] px-5 py-4"
+                className="flex items-center justify-between border-t border-border/40 first:border-t-0 px-5 py-4"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/[0.12]">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/[0.12]">
+                    <CheckCircle2 className="h-4 w-4 text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium capitalize text-white">
+                    <p className="text-sm font-medium capitalize text-foreground">
                       {formatPeriod(receipt.period)}
                     </p>
-                    <p className="text-xs text-white/35">
+                    <p className="text-xs text-muted-foreground">
                       Pagado
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold tabular-nums text-white">
+                  <span className="text-sm font-semibold tabular-nums text-foreground">
                     {receipt.snapshot_currency} {formatAmount(receipt.snapshot_amount)}
                   </span>
                   {receipt.pdf_url && (
@@ -268,7 +320,7 @@ export default async function TenantDashboardPage() {
                       href={receipt.pdf_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-white/25 transition-opacity hover:opacity-70"
+                      className="text-muted-foreground transition-opacity hover:text-foreground"
                     >
                       <ChevronRight className="h-4 w-4" />
                     </a>
@@ -279,12 +331,9 @@ export default async function TenantDashboardPage() {
           </div>
         </section>
       )}
-
     </div>
   )
 }
-
-// ── Sub-components ─────────────────────────────────────────────────────────
 
 function SectionHeader({
   icon: Icon,
@@ -297,8 +346,8 @@ function SectionHeader({
 }) {
   return (
     <div className="mb-4 flex items-center gap-2">
-      <Icon className="h-4 w-4 text-white/30" />
-      <h2 className="text-sm font-semibold uppercase tracking-widest text-white/50">
+      <Icon className="h-4 w-4 text-muted-foreground" />
+      <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
         {title}
       </h2>
       {badge !== undefined && (
@@ -306,15 +355,6 @@ function SectionHeader({
           {badge}
         </span>
       )}
-    </div>
-  )
-}
-
-function EmptyState({ message, check }: { message: string; check?: boolean }) {
-  return (
-    <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.02] px-5 py-4">
-      {check && <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />}
-      <p className="text-sm text-white/35">{message}</p>
     </div>
   )
 }

@@ -89,7 +89,7 @@ export function SignatureStatus({
         )
       case 'fully_signed':
         return (
-          <Badge variant="default" className="gap-1 bg-green-600">
+          <Badge variant="default" className="gap-1 bg-primary">
             <CheckCircle2 className="h-3 w-3" />
             Firmado por ambas partes
           </Badge>
@@ -133,7 +133,7 @@ export function SignatureStatus({
         {/* Firma del propietario */}
         <div className="flex items-start gap-3">
           {landlordSignedAt ? (
-            <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
+            <CheckCircle2 className="h-5 w-5 text-primary mt-0.5" />
           ) : (
             <Clock className="h-5 w-5 text-muted-foreground mt-0.5" />
           )}
@@ -152,7 +152,7 @@ export function SignatureStatus({
         {/* Firma del inquilino */}
         <div className="flex items-start gap-3">
           {tenantSignedAt ? (
-            <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
+            <CheckCircle2 className="h-5 w-5 text-primary mt-0.5" />
           ) : (
             <Clock className="h-5 w-5 text-muted-foreground mt-0.5" />
           )}

@@ -1,8 +1,8 @@
 import { getTenant } from '@/lib/actions/tenants'
 import { notFound } from 'next/navigation'
-import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Users } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import { PageHeader } from '@/components/shared/PageHeader'
 import { TenantForm } from '@/components/tenants/TenantForm'
 
 export default async function EditTenantPage({
@@ -19,22 +19,17 @@ export default async function EditTenantPage({
 
   return (
     <div className="max-w-2xl space-y-6">
-      <div>
-        <Link
-          href={`/tenants/${tenant.id}`}
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Volver al detalle
-        </Link>
-      </div>
+      <PageHeader
+        icon={Users}
+        eyebrow="Editar"
+        title="Editar inquilino"
+        description={`Modifica los datos de ${tenant.full_name}.`}
+        backHref={`/tenants/${tenant.id}`}
+        backLabel="Volver al detalle"
+      />
 
       <Card>
-        <CardHeader>
-          <CardTitle>Editar inquilino</CardTitle>
-          <p className="text-sm text-muted-foreground">Modifica los datos de {tenant.full_name}.</p>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <TenantForm tenant={tenant} />
         </CardContent>
       </Card>

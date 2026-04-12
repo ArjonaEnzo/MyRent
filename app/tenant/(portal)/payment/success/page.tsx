@@ -15,9 +15,9 @@ export default function PaymentSuccessPage() {
   return (
     <div className="flex min-h-[50vh] flex-col items-center justify-center gap-6 text-center">
       {/* Ícono de éxito */}
-      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
         <svg
-          className="h-8 w-8 text-green-600 dark:text-green-400"
+          className="h-8 w-8 text-primary"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -28,10 +28,10 @@ export default function PaymentSuccessPage() {
       </div>
 
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+        <h1 className="text-2xl font-bold text-foreground">
           ¡Pago procesado!
         </h1>
-        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+        <p className="mt-2 text-sm text-muted-foreground">
           Tu pago fue aprobado por Mercado Pago.
           <br />
           En unos segundos verás el recibo actualizado en tu portal.
@@ -40,7 +40,7 @@ export default function PaymentSuccessPage() {
 
       <Link
         href="/tenant/dashboard"
-        className="rounded-md bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
+        className="rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
       >
         Volver a mi portal
       </Link>

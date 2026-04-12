@@ -61,7 +61,7 @@ export default function TenantSettingsPage() {
         }}
       >
         <div className="mb-5 flex items-center gap-2 text-sm font-medium text-white">
-          <Lock className="h-4 w-4 text-emerald-500" />
+          <Lock className="h-4 w-4 text-primary" />
           Cambiar contraseña
         </div>
 

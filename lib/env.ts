@@ -15,6 +15,8 @@ const envSchema = z.object({
   MERCADOPAGO_ACCESS_TOKEN: z.string().min(1).optional(),
   // Webhook Secret: generado en Tus integraciones → Webhooks → agregar URL
   MERCADOPAGO_WEBHOOK_SECRET: z.string().min(1).optional(),
+  // Cron Secret — protege la ruta /api/cron/* (Vercel lo envía automáticamente)
+  CRON_SECRET: z.string().min(1).optional(),
 })
 
 export const env = envSchema.parse({
@@ -28,4 +30,5 @@ export const env = envSchema.parse({
   HELLOSIGN_CLIENT_ID: process.env.HELLOSIGN_CLIENT_ID,
   MERCADOPAGO_ACCESS_TOKEN: process.env.MERCADOPAGO_ACCESS_TOKEN,
   MERCADOPAGO_WEBHOOK_SECRET: process.env.MERCADOPAGO_WEBHOOK_SECRET,
+  CRON_SECRET: process.env.CRON_SECRET,
 })

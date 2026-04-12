@@ -2,10 +2,18 @@
 
 import { createAdminClient } from '@/lib/supabase/server'
 import { getCurrentUserWithAccount, requireRole } from '@/lib/supabase/auth'
-import { receiptSchema, type ReceiptInput } from '@/lib/validations/receipt'
+import {
+  receiptSchema,
+  receiptLineItemSchema,
+  updateLineItemSchema,
+  type ReceiptInput,
+  type ReceiptLineItemInput,
+  type UpdateLineItemInput,
+} from '@/lib/validations/receipt'
 import type { Database } from '@/types/database.types'
 
 type Receipt = Database['public']['Tables']['receipts']['Row']
+type ReceiptLineItem = Database['public']['Tables']['receipt_line_items']['Row']
 type ReceiptWithTenant = Receipt & { tenants: { full_name: string; email: string | null } | null }
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
@@ -271,4 +279,330 @@ export async function getReceipt(id: string): Promise<ReceiptWithTenant | null> 
   }
 
   return data as unknown as ReceiptWithTenant
+}
+
+// ─── Draft Receipt Line Items ────────────────────────────────────────────────
+
+export async function getReceiptWithLineItems(receiptId: string) {
+  const validId = validateId(receiptId)
+  const { accountId, supabase } = await getCurrentUserWithAccount()
+
+  const { data: receipt, error } = await supabase
+    .from('receipts')
+    .select('*, tenants(full_name, email)')
+    .eq('id', validId)
+    .eq('account_id', accountId)
+    .is('deleted_at', null)
+    .single()
+
+  if (error || !receipt) return null
+
+  const { data: lineItems } = await supabase
+    .from('receipt_line_items')
+    .select('*')
+    .eq('receipt_id', validId)
+    .eq('account_id', accountId)
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: true })
+
+  return {
+    receipt: receipt as unknown as ReceiptWithTenant,
+    lineItems: (lineItems ?? []) as ReceiptLineItem[],
+  }
+}
+
+export async function addLineItem(input: ReceiptLineItemInput) {
+  try {
+    const { user, accountId, supabase } = await getCurrentUserWithAccount()
+    await requireRole(supabase, accountId, user.id, ['owner', 'admin'])
+
+    const validated = receiptLineItemSchema.parse(input)
+    const receiptId = validateId(validated.receipt_id)
+
+    // Verify receipt is draft
+    const { data: receipt } = await supabase
+      .from('receipts')
+      .select('status')
+      .eq('id', receiptId)
+      .eq('account_id', accountId)
+      .is('deleted_at', null)
+      .single()
+
+    if (!receipt) return { success: false, error: 'Recibo no encontrado' }
+    if (receipt.status !== 'draft') return { success: false, error: 'Solo se pueden editar borradores' }
+
+    // Get max sort_order
+    const { data: maxRow } = await supabase
+      .from('receipt_line_items')
+      .select('sort_order')
+      .eq('receipt_id', receiptId)
+      .order('sort_order', { ascending: false })
+      .limit(1)
+      .single()
+
+    const nextOrder = (maxRow?.sort_order ?? -1) + 1
+
+    const { data, error } = await supabase
+      .from('receipt_line_items')
+      .insert({
+        receipt_id: receiptId,
+        account_id: accountId,
+        label: validated.label,
+        amount: validated.amount,
+        item_type: validated.item_type,
+        sort_order: nextOrder,
+      })
+      .select()
+      .single()
+
+    if (error) {
+      logger.error('Failed to add line item', { error: error.message })
+      return { success: false, error: 'Error al agregar concepto' }
+    }
+
+    revalidatePath(`/receipts/${receiptId}/edit`)
+    return { success: true, data: data as ReceiptLineItem }
+  } catch (error) {
+    logError(error, { action: 'addLineItem' })
+    if (error instanceof z.ZodError) {
+      return { success: false, error: 'Datos inválidos', errors: error.errors }
+    }
+    return { success: false, error: 'Error al agregar concepto' }
+  }
+}
+
+export async function updateLineItem(input: UpdateLineItemInput) {
+  try {
+    const { user, accountId, supabase } = await getCurrentUserWithAccount()
+    await requireRole(supabase, accountId, user.id, ['owner', 'admin'])
+
+    const validated = updateLineItemSchema.parse(input)
+    const lineItemId = validateId(validated.id)
+
+    // Fetch line item and verify receipt is draft
+    const { data: lineItem } = await supabase
+      .from('receipt_line_items')
+      .select('receipt_id')
+      .eq('id', lineItemId)
+      .eq('account_id', accountId)
+      .single()
+
+    if (!lineItem) return { success: false, error: 'Concepto no encontrado' }
+
+    const { data: receipt } = await supabase
+      .from('receipts')
+      .select('status')
+      .eq('id', lineItem.receipt_id)
+      .eq('account_id', accountId)
+      .is('deleted_at', null)
+      .single()
+
+    if (!receipt) return { success: false, error: 'Recibo no encontrado' }
+    if (receipt.status !== 'draft') return { success: false, error: 'Solo se pueden editar borradores' }
+
+    const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() }
+    if (validated.label !== undefined) updateData.label = validated.label
+    if (validated.amount !== undefined) updateData.amount = validated.amount
+    if (validated.item_type !== undefined) updateData.item_type = validated.item_type
+
+    const { error } = await supabase
+      .from('receipt_line_items')
+      .update(updateData)
+      .eq('id', lineItemId)
+      .eq('account_id', accountId)
+
+    if (error) {
+      logger.error('Failed to update line item', { error: error.message })
+      return { success: false, error: 'Error al actualizar concepto' }
+    }
+
+    revalidatePath(`/receipts/${lineItem.receipt_id}/edit`)
+    return { success: true }
+  } catch (error) {
+    logError(error, { action: 'updateLineItem' })
+    if (error instanceof z.ZodError) {
+      return { success: false, error: 'Datos inválidos', errors: error.errors }
+    }
+    return { success: false, error: 'Error al actualizar concepto' }
+  }
+}
+
+export async function removeLineItem(lineItemId: string) {
+  try {
+    const validId = validateId(lineItemId)
+    const { user, accountId, supabase } = await getCurrentUserWithAccount()
+    await requireRole(supabase, accountId, user.id, ['owner', 'admin'])
+
+    // Fetch line item and verify receipt is draft
+    const { data: lineItem } = await supabase
+      .from('receipt_line_items')
+      .select('receipt_id, item_type')
+      .eq('id', validId)
+      .eq('account_id', accountId)
+      .single()
+
+    if (!lineItem) return { success: false, error: 'Concepto no encontrado' }
+    if (lineItem.item_type === 'rent') return { success: false, error: 'No se puede eliminar el concepto de alquiler' }
+
+    const { data: receipt } = await supabase
+      .from('receipts')
+      .select('status')
+      .eq('id', lineItem.receipt_id)
+      .eq('account_id', accountId)
+      .is('deleted_at', null)
+      .single()
+
+    if (!receipt) return { success: false, error: 'Recibo no encontrado' }
+    if (receipt.status !== 'draft') return { success: false, error: 'Solo se pueden editar borradores' }
+
+    const { error } = await supabase
+      .from('receipt_line_items')
+      .delete()
+      .eq('id', validId)
+      .eq('account_id', accountId)
+
+    if (error) {
+      logger.error('Failed to remove line item', { error: error.message })
+      return { success: false, error: 'Error al eliminar concepto' }
+    }
+
+    revalidatePath(`/receipts/${lineItem.receipt_id}/edit`)
+    return { success: true }
+  } catch (error) {
+    logError(error, { action: 'removeLineItem' })
+    return { success: false, error: 'Error al eliminar concepto' }
+  }
+}
+
+export async function finalizeReceipt(receiptId: string) {
+  try {
+    const validId = validateId(receiptId)
+    const { user, accountId, supabase } = await getCurrentUserWithAccount()
+    await requireRole(supabase, accountId, user.id, ['owner', 'admin'])
+    const adminSupabase = createAdminClient()
+
+    // 1. Call finalize RPC (sums line items, freezes payload, promotes to generated)
+    const { data: rpcReceipt, error: rpcError } = await supabase.rpc('finalize_receipt', {
+      p_actor_user_id: user.id,
+      p_account_id: accountId,
+      p_receipt_id: validId,
+    })
+
+    if (rpcError || !rpcReceipt) {
+      logger.error('finalize_receipt RPC failed', { error: rpcError?.message })
+      return { success: false, error: rpcError?.message?.includes('invalid_state')
+        ? 'Solo se pueden finalizar borradores'
+        : 'Error al finalizar el recibo'
+      }
+    }
+
+    const receipt = rpcReceipt as Receipt
+
+    // 2. Fetch line items for PDF
+    const { data: lineItems } = await supabase
+      .from('receipt_line_items')
+      .select('label, amount, item_type')
+      .eq('receipt_id', validId)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true })
+
+    // 3. Generate PDF with line items
+    const now = new Date()
+    const dateStr = now.toLocaleDateString('es-AR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+
+    const pdfElement = React.createElement(ReceiptPDF, {
+      recipientName: receipt.snapshot_tenant_name,
+      recipientAddress: receipt.snapshot_property_address,
+      amount: receipt.snapshot_amount,
+      currency: receipt.snapshot_currency,
+      period: receipt.period,
+      date: dateStr,
+      receiptId: validId,
+      description: receipt.description ?? null,
+      lineItems: (lineItems ?? []) as Array<{ label: string; amount: number; item_type: string }>,
+    })
+    const pdfBuffer = await renderToBuffer(pdfElement as any)
+
+    // 4. Upload PDF
+    const fileName = `${accountId}/${validId}.pdf`
+    try {
+      await withRetry(async () => {
+        const result = await adminSupabase.storage
+          .from('receipts')
+          .upload(fileName, pdfBuffer, { contentType: 'application/pdf', upsert: true })
+        if (result.error) throw result.error
+      }, { maxRetries: 2, initialDelayMs: 500 })
+    } catch (err) {
+      logger.error('Failed to upload finalized PDF', { error: err instanceof Error ? err.message : String(err) })
+      return { success: false, error: 'Error al subir el PDF' }
+    }
+
+    // 5. Signed URL
+    const { data: signedUrlData } = await adminSupabase.storage
+      .from('receipts')
+      .createSignedUrl(fileName, 60 * 60 * 24 * 365)
+
+    const pdfUrl = signedUrlData?.signedUrl ?? null
+
+    // 6. Update receipt with PDF info
+    await supabase
+      .from('receipts')
+      .update({
+        storage_path: fileName,
+        pdf_url: pdfUrl,
+        email_sent: false,
+      })
+      .eq('id', validId)
+      .eq('account_id', accountId)
+
+    // 7. Send email to tenant
+    const { data: tenantContact } = await supabase
+      .from('tenants')
+      .select('email')
+      .eq('id', receipt.tenant_id)
+      .single()
+
+    if (tenantContact?.email && pdfUrl) {
+      try {
+        await withRetry(
+          () => sendReceiptEmail({
+            to: tenantContact.email!,
+            recipientName: receipt.snapshot_tenant_name,
+            period: receipt.period,
+            amount: receipt.snapshot_amount,
+            currency: receipt.snapshot_currency,
+            pdfUrl,
+            userId: user.id,
+            description: receipt.description ?? null,
+          }),
+          { maxRetries: 2, initialDelayMs: 1000 }
+        )
+
+        await supabase
+          .from('receipts')
+          .update({ email_sent: true })
+          .eq('id', validId)
+
+        logger.info('Finalized receipt email sent', { receiptId: validId, to: tenantContact.email })
+      } catch (emailError) {
+        logger.error('Failed to send finalized receipt email', {
+          receiptId: validId,
+          error: emailError instanceof Error ? emailError.message : 'Unknown',
+        })
+      }
+    }
+
+    logger.info('Receipt finalized', { receiptId: validId, userId: user.id })
+    revalidatePath('/receipts')
+    revalidatePath(`/receipts/${validId}`)
+    return { success: true }
+  } catch (error) {
+    if (isRedirectError(error)) throw error
+    logError(error, { action: 'finalizeReceipt' })
+    return { success: false, error: 'Error al finalizar el recibo' }
+  }
 }

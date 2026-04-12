@@ -1,27 +1,22 @@
-import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Building2 } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import { PageHeader } from '@/components/shared/PageHeader'
 import { PropertyForm } from '@/components/properties/PropertyForm'
 
 export default function NewPropertyPage() {
   return (
     <div className="max-w-2xl space-y-6">
-      <div>
-        <Link
-          href="/properties"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Volver a propiedades
-        </Link>
-      </div>
+      <PageHeader
+        icon={Building2}
+        eyebrow="Nueva"
+        title="Nueva propiedad"
+        description="Ingresa los datos de tu propiedad."
+        backHref="/properties"
+        backLabel="Volver a propiedades"
+      />
 
       <Card>
-        <CardHeader>
-          <CardTitle>Nueva propiedad</CardTitle>
-          <p className="text-sm text-muted-foreground">Ingresa los datos de tu propiedad.</p>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <PropertyForm />
         </CardContent>
       </Card>

@@ -16,19 +16,19 @@ export default async function TenantPortalLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#080E1A]">
+    <div className="dark min-h-screen bg-[#080E1A]">
 
       {/* ── Top bar ── */}
       <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-[rgba(8,14,26,0.85)] backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-5">
           {/* Logo */}
           <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
               <Home className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
             </div>
             <div className="flex items-baseline gap-1.5">
               <span className="text-sm font-bold tracking-tight text-white">
-                My<span className="text-emerald-500">Rent</span>
+                My<span className="text-primary">Rent</span>
               </span>
               <span className="hidden text-xs text-white/30 sm:block">
                 / Inquilino

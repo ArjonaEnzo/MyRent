@@ -25,11 +25,11 @@ export const LanguageToggle = memo(function LanguageToggle() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="h-9 px-3 rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 flex items-center gap-2 hover:from-emerald-100 hover:to-teal-100 dark:hover:from-emerald-900/20 dark:hover:to-teal-900/20 transition-all duration-300 shadow-sm border border-slate-200 dark:border-slate-700"
+        className="h-9 px-3 rounded-lg bg-muted flex items-center gap-2 hover:bg-primary/10 transition-all duration-300 shadow-sm border border-border/60"
         aria-label="Change language"
       >
-        <Languages className="h-4 w-4 text-slate-700 dark:text-slate-300" />
-        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+        <Languages className="h-4 w-4 text-foreground" />
+        <span className="text-sm font-medium text-foreground">
           {currentLanguage?.flag}
         </span>
       </motion.button>
@@ -49,20 +49,20 @@ export const LanguageToggle = memo(function LanguageToggle() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ duration: 0.2 }}
-              className="absolute right-0 top-12 z-50 w-48 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden"
+              className="absolute right-0 top-12 z-50 w-48 rounded-lg bg-popover border border-border shadow-xl overflow-hidden"
             >
               {languages.map((lang) => (
                 <motion.button
                   key={lang.code}
-                  whileHover={{ backgroundColor: 'rgba(16, 185, 129, 0.1)' }}
+                  whileHover={{ backgroundColor: 'hsl(var(--primary) / 0.1)' }}
                   onClick={() => {
                     setLocale(lang.code)
                     setIsOpen(false)
                   }}
                   className={`w-full px-4 py-3 flex items-center gap-3 text-sm transition-colors ${
                     locale === lang.code
-                      ? 'bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 text-emerald-700 dark:text-emerald-400 font-medium'
-                      : 'text-slate-700 dark:text-slate-300'
+                      ? 'bg-primary/10 text-primary font-medium'
+                      : 'text-foreground'
                   }`}
                 >
                   <span className="text-2xl">{lang.flag}</span>
@@ -70,7 +70,7 @@ export const LanguageToggle = memo(function LanguageToggle() {
                   {locale === lang.code && (
                     <motion.div
                       layoutId="activeLanguage"
-                      className="ml-auto h-2 w-2 rounded-full bg-emerald-500"
+                      className="ml-auto h-2 w-2 rounded-full bg-primary"
                       transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                     />
                   )}

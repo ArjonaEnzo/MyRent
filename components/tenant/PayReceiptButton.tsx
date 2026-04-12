@@ -50,7 +50,7 @@ export function PayReceiptButton({
       <button
         onClick={handlePay}
         disabled={isPending}
-        className="flex w-full items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isPending ? (
           <>
@@ -77,7 +77,7 @@ export function PayReceiptButton({
         <p className="text-center text-xs text-red-600 dark:text-red-400">{error}</p>
       )}
 
-      <p className="text-center text-xs text-slate-400">
+      <p className="text-center text-xs text-muted-foreground">
         {currency} {amount.toLocaleString('es-AR')} · Período {period}
       </p>
     </div>

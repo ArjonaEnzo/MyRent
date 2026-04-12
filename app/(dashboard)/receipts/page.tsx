@@ -25,6 +25,8 @@ export default async function ReceiptsPage({ searchParams }: PageProps) {
   return (
     <div className="space-y-6 max-w-7xl">
       <PageHeader
+        icon={FileText}
+        eyebrow="Facturación"
         title="Recibos"
         description={`${total} ${total === 1 ? 'recibo generado' : 'recibos generados'}`}
         action={
