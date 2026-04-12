@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Home, ArrowRight, AlertCircle } from 'lucide-react'
 
 type Status = 'verifying' | 'ready' | 'submitting' | 'error'
 
-export default function SetPasswordPage() {
+function SetPasswordForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [status, setStatus] = useState<Status>('verifying')
@@ -95,6 +95,118 @@ export default function SetPasswordPage() {
 
   return (
     <div
+      className="rounded-2xl p-6"
+      style={{
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.08)',
+      }}
+    >
+      {status === 'verifying' && (
+        <p className="text-center text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          Verificando invitación...
+        </p>
+      )}
+
+      {status === 'error' && (
+        <div
+          className="flex items-start gap-2 rounded-xl px-4 py-3 text-sm"
+          style={{
+            background: 'rgba(239,68,68,0.08)',
+            border: '1px solid rgba(239,68,68,0.2)',
+            color: '#fca5a5',
+          }}
+        >
+          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+          {error}
+        </div>
+      )}
+
+      {(status === 'ready' || status === 'submitting') && (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div
+              className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
+              style={{
+                background: 'rgba(239,68,68,0.08)',
+                border: '1px solid rgba(239,68,68,0.2)',
+                color: '#fca5a5',
+              }}
+            >
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <label htmlFor="password" className="block text-xs font-medium" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              Contraseña (mínimo 8 caracteres)
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="new-password"
+              required
+              minLength={8}
+              placeholder="••••••••"
+              className="w-full rounded-xl px-4 py-2.5 text-sm text-white placeholder:opacity-30 outline-none"
+              style={{
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                caretColor: '#10b981',
+              }}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="confirm" className="block text-xs font-medium" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              Confirmar contraseña
+            </label>
+            <input
+              id="confirm"
+              name="confirm"
+              type="password"
+              autoComplete="new-password"
+              required
+              minLength={8}
+              placeholder="••••••••"
+              className="w-full rounded-xl px-4 py-2.5 text-sm text-white placeholder:opacity-30 outline-none"
+              style={{
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                caretColor: '#10b981',
+              }}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={status === 'submitting'}
+            className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+            style={{
+              background: status === 'submitting'
+                ? 'rgba(16,185,129,0.5)'
+                : 'linear-gradient(135deg, #10b981, #059669)',
+            }}
+          >
+            {status === 'submitting' ? (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+            ) : (
+              <>
+                Guardar y entrar
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
+          </button>
+        </form>
+      )}
+    </div>
+  )
+}
+
+export default function SetPasswordPage() {
+  return (
+    <div
       className="flex min-h-screen items-center justify-center px-4"
       style={{ background: '#080E1A' }}
     >
@@ -121,113 +233,23 @@ export default function SetPasswordPage() {
           </div>
         </div>
 
-        <div
-          className="rounded-2xl p-6"
-          style={{
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.08)',
-          }}
-        >
-          {status === 'verifying' && (
-            <p className="text-center text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
-              Verificando invitación...
-            </p>
-          )}
-
-          {status === 'error' && (
+        <Suspense
+          fallback={
             <div
-              className="flex items-start gap-2 rounded-xl px-4 py-3 text-sm"
+              className="rounded-2xl p-6"
               style={{
-                background: 'rgba(239,68,68,0.08)',
-                border: '1px solid rgba(239,68,68,0.2)',
-                color: '#fca5a5',
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.08)',
               }}
             >
-              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-              {error}
+              <p className="text-center text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                Cargando...
+              </p>
             </div>
-          )}
-
-          {(status === 'ready' || status === 'submitting') && (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <div
-                  className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
-                  style={{
-                    background: 'rgba(239,68,68,0.08)',
-                    border: '1px solid rgba(239,68,68,0.2)',
-                    color: '#fca5a5',
-                  }}
-                >
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  {error}
-                </div>
-              )}
-
-              <div className="space-y-1.5">
-                <label htmlFor="password" className="block text-xs font-medium" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                  Contraseña (mínimo 8 caracteres)
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  minLength={8}
-                  placeholder="••••••••"
-                  className="w-full rounded-xl px-4 py-2.5 text-sm text-white placeholder:opacity-30 outline-none"
-                  style={{
-                    background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    caretColor: '#10b981',
-                  }}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label htmlFor="confirm" className="block text-xs font-medium" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                  Confirmar contraseña
-                </label>
-                <input
-                  id="confirm"
-                  name="confirm"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  minLength={8}
-                  placeholder="••••••••"
-                  className="w-full rounded-xl px-4 py-2.5 text-sm text-white placeholder:opacity-30 outline-none"
-                  style={{
-                    background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    caretColor: '#10b981',
-                  }}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={status === 'submitting'}
-                className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white disabled:opacity-60"
-                style={{
-                  background: status === 'submitting'
-                    ? 'rgba(16,185,129,0.5)'
-                    : 'linear-gradient(135deg, #10b981, #059669)',
-                }}
-              >
-                {status === 'submitting' ? (
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                ) : (
-                  <>
-                    Guardar y entrar
-                    <ArrowRight className="h-4 w-4" />
-                  </>
-                )}
-              </button>
-            </form>
-          )}
-        </div>
+          }
+        >
+          <SetPasswordForm />
+        </Suspense>
       </div>
     </div>
   )
