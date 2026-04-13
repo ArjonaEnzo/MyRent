@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {
   Building2, FileText, Mail, DollarSign, ArrowRight,
   CheckCircle2, AlertCircle, Home, Shield,
-  AlertTriangle, TrendingUp, Instagram, Pause, Play, Zap,
+  AlertTriangle, TrendingUp, Instagram, Zap,
   MapPin, Star,
 } from 'lucide-react'
 import Balancer from 'react-wrap-balancer'
@@ -141,7 +141,6 @@ export default function HomePage() {
   const [tenantLoading, setTenantLoading] = useState(false)
   const [tenantError, setTenantError] = useState('')
   const heroVideoRef = useRef<HTMLVideoElement>(null)
-  const [videoPlaying, setVideoPlaying] = useState(false)
   const [videoLoaded, setVideoLoaded] = useState(false)
   const shouldReduceMotion = useReducedMotion()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -151,13 +150,6 @@ export default function HomePage() {
     const timer = setTimeout(() => setVideoLoaded(true), 900)
     return () => clearTimeout(timer)
   }, [shouldReduceMotion])
-
-  function toggleVideo() {
-    const v = heroVideoRef.current
-    if (!v) return
-    if (v.paused) { v.play(); setVideoPlaying(true) }
-    else { v.pause(); setVideoPlaying(false) }
-  }
 
   async function handleOwnerSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -491,15 +483,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        <motion.button
-          type="button" onClick={toggleVideo}
-          aria-label={videoPlaying ? 'Pausar video de fondo' : 'Reproducir video de fondo'}
-          initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.9 }}
-          className="hidden md:flex absolute bottom-8 left-8 z-20 h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-slate-900/60 backdrop-blur-xl text-white hover:bg-slate-900/80 transition-colors"
-        >
-          {videoPlaying ? <Pause className="h-3.5 w-3.5" aria-hidden /> : <Play className="h-3.5 w-3.5 ml-0.5" aria-hidden />}
-        </motion.button>
       </section>
 
       {/* ── Best Services ────────────────────────────────────────── */}
