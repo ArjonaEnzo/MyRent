@@ -1,5 +1,19 @@
+import type { Metadata } from 'next'
 import { getProperty, getPropertyImages } from '@/lib/actions/properties'
 import { notFound } from 'next/navigation'
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}): Promise<Metadata> {
+  const { id } = await params
+  const property = await getProperty(id)
+  return {
+    title: property ? `${property.name} | Propiedades | MyRent` : 'Propiedad no encontrada | MyRent',
+    description: property?.address ?? 'Detalle de propiedad en alquiler.',
+  }
+}
 import Link from 'next/link'
 import { Building2, Pencil, Calendar, Archive } from 'lucide-react'
 import { Button } from '@/components/ui/button'

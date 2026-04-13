@@ -14,8 +14,7 @@ const TENANT_NOTIFY_DAYS = 7
 const LANDLORD_NOTIFY_DAYS = 5
 
 /**
- * Helpers para billing_notifications (tabla no está en types generados aún).
- * TODO: Reemplazar con supabase.from('billing_notifications') cuando se regeneren los types.
+ * Helpers para billing_notifications — control de idempotencia de notificaciones.
  */
 async function hasNotification(
   supabase: ReturnType<typeof createAdminClient>,
@@ -23,7 +22,8 @@ async function hasNotification(
   period: string,
   type: string,
 ): Promise<boolean> {
-  const { data } = await (supabase.from as Function)('billing_notifications')
+  const { data } = await supabase
+    .from('billing_notifications')
     .select('id')
     .eq('lease_id', leaseId)
     .eq('period', period)
@@ -37,7 +37,7 @@ async function insertNotification(
   supabase: ReturnType<typeof createAdminClient>,
   row: { lease_id: string; account_id: string; period: string; notification_type: string; recipient_email: string },
 ): Promise<void> {
-  await (supabase.from as Function)('billing_notifications').insert(row)
+  await supabase.from('billing_notifications').insert(row)
 }
 
 /**

@@ -1,5 +1,19 @@
+import type { Metadata } from 'next'
 import { getReceipt } from '@/lib/actions/receipts'
 import { notFound } from 'next/navigation'
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}): Promise<Metadata> {
+  const { id } = await params
+  const receipt = await getReceipt(id)
+  return {
+    title: receipt ? `Recibo ${receipt.period} | Recibos | MyRent` : 'Recibo no encontrado | MyRent',
+    description: receipt ? `Detalle del recibo del período ${receipt.period}.` : 'Detalle de recibo de alquiler.',
+  }
+}
 import Link from 'next/link'
 import { FileText, Download, User, MapPin, Calendar, Hash, Mail, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'

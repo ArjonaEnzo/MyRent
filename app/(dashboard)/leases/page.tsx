@@ -1,4 +1,10 @@
+import type { Metadata } from 'next'
 import { getLeases } from '@/lib/actions/leases'
+
+export const metadata: Metadata = {
+  title: 'Contratos | MyRent',
+  description: 'Listado y gestión de contratos de alquiler.',
+}
 import { Button } from '@/components/ui/button'
 import { LeaseActions } from '@/components/leases/LeaseActions'
 import { PageHeader } from '@/components/shared/PageHeader'

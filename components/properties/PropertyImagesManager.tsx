@@ -109,7 +109,7 @@ export function PropertyImagesManager({
             <div key={img.id} className="relative group aspect-video rounded-lg overflow-hidden border bg-muted">
               <Image
                 src={img.url}
-                alt="Foto de propiedad"
+                alt={`Imagen ${images.indexOf(img) + 1} de la propiedad`}
                 fill
                 className="object-cover"
                 unoptimized
@@ -136,6 +136,7 @@ export function PropertyImagesManager({
                   variant="destructive"
                   className="h-7 text-xs"
                   onClick={() => handleDelete(img.id)}
+                  aria-label="Eliminar imagen"
                 >
                   <Trash2 className="h-3 w-3" />
                 </Button>

@@ -54,7 +54,7 @@ function PropertyCard({ property, isOverlay = false }: { property: Property; isO
         {property.cover_image_url ? (
           <Image
             src={property.cover_image_url}
-            alt={property.name}
+            alt={`Foto de ${property.name}`}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-300"
             unoptimized

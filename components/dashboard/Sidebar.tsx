@@ -74,6 +74,7 @@ export const Sidebar = memo(function Sidebar({ userEmail, avatarUrl }: SidebarPr
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           onClick={toggleCollapsed}
+          aria-label={collapsed ? 'Expandir barra lateral' : 'Colapsar barra lateral'}
           className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
         >
           {collapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
@@ -140,7 +141,7 @@ export const Sidebar = memo(function Sidebar({ userEmail, avatarUrl }: SidebarPr
           >
             <div className="relative h-8 w-8 rounded-full overflow-hidden shrink-0 shadow-md ring-1 ring-border">
               {avatarUrl ? (
-                <Image src={avatarUrl} alt="Avatar" fill className="object-cover" unoptimized />
+                <Image src={avatarUrl} alt={`Avatar de ${userEmail}`} fill className="object-cover" unoptimized />
               ) : (
                 <div className="h-full w-full bg-primary flex items-center justify-center text-xs font-medium text-primary-foreground">
                   {initials}

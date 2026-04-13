@@ -181,8 +181,9 @@ export function LeaseForm({ properties, tenants, lease }: LeaseFormProps) {
               max={28}
               defaultValue={lease?.billing_day ?? 1}
               required
+              aria-describedby="billing_day_desc"
             />
-            <p className="text-xs text-muted-foreground">
+            <p id="billing_day_desc" className="text-xs text-muted-foreground">
               Cada mes, el día indicado se generará un borrador del recibo.
             </p>
           </div>
@@ -247,8 +248,9 @@ export function LeaseForm({ properties, tenants, lease }: LeaseFormProps) {
                   defaultValue={lease?.adjustment_percentage ?? ''}
                   placeholder="ej. 4"
                   required
+                  aria-describedby="adjustment_percentage_desc"
                 />
-                <p className="text-xs text-muted-foreground">Ej: 4 = 4% cada período</p>
+                <p id="adjustment_percentage_desc" className="text-xs text-muted-foreground">Ej: 4 = 4% cada período</p>
               </div>
             )}
 
@@ -261,13 +263,14 @@ export function LeaseForm({ properties, tenants, lease }: LeaseFormProps) {
                   defaultValue={lease?.adjustment_index ?? ''}
                   required
                   className={selectClass}
+                  aria-describedby="adjustment_index_desc"
                 >
                   <option value="" disabled>Seleccionar índice...</option>
                   {INDEX_OPTIONS.map((idx) => (
                     <option key={idx} value={idx}>{idx}</option>
                   ))}
                 </select>
-                <p className="text-xs text-muted-foreground">
+                <p id="adjustment_index_desc" className="text-xs text-muted-foreground">
                   El valor del índice se carga manualmente al aplicar cada aumento.
                 </p>
               </div>
@@ -285,8 +288,9 @@ export function LeaseForm({ properties, tenants, lease }: LeaseFormProps) {
                   defaultValue={lease?.adjustment_fixed_amount ?? ''}
                   placeholder="ej. 10000"
                   required
+                  aria-describedby="adjustment_fixed_amount_desc"
                 />
-                <p className="text-xs text-muted-foreground">Monto fijo que se suma al alquiler en cada período.</p>
+                <p id="adjustment_fixed_amount_desc" className="text-xs text-muted-foreground">Monto fijo que se suma al alquiler en cada período.</p>
               </div>
             )}
           </>

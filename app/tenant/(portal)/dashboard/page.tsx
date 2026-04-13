@@ -1,5 +1,7 @@
+import type { Metadata } from 'next'
 import { getCurrentTenant } from '@/lib/supabase/tenant-auth'
 import { PayReceiptButton } from '@/components/tenant/PayReceiptButton'
+import { ExpandableList } from '@/components/tenant/ExpandableList'
 import { env } from '@/lib/env'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { EmptyState } from '@/components/shared/EmptyState'
@@ -21,6 +23,11 @@ import {
 import type { Database } from '@/types/database.types'
 import { formatPeriod, formatDate } from '@/lib/utils/format'
 import { computeNextBillingDate, computeNextAdjustmentDate, formatBillingDayMonth } from '@/lib/utils/lease-billing'
+
+export const metadata: Metadata = {
+  title: 'Mi Dashboard | MyRent',
+  description: 'Panel del inquilino con contratos, recibos y pagos.',
+}
 
 type LeaseOverview = Database['public']['Views']['leases_overview']['Row']
 type ReceiptRow = Database['public']['Tables']['receipts']['Row']
@@ -88,7 +95,7 @@ export default async function TenantDashboardPage() {
     .eq('account_id', accountId)
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
-    .limit(12)
+    .limit(50)
 
   // Filtrar borradores: el inquilino solo ve recibos finalizados (no drafts)
   const pendingReceipts = (receipts ?? []).filter(
@@ -294,44 +301,52 @@ export default async function TenantDashboardPage() {
         <section>
           <SectionHeader icon={CheckCircle2} title="Historial de pagos" />
           <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-            {(paidReceipts as ReceiptRow[]).map((receipt) => (
-              <div
-                key={receipt.id}
-                className="flex items-center justify-between border-t border-border/40 first:border-t-0 px-5 py-4"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/[0.12]">
-                    <CheckCircle2 className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium capitalize text-foreground">
-                      {formatPeriod(receipt.period)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Pagado
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold tabular-nums text-foreground">
-                    {receipt.snapshot_currency} {formatAmount(receipt.snapshot_amount)}
-                  </span>
-                  {receipt.pdf_url && (
-                    <a
-                      href={receipt.pdf_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-muted-foreground transition-opacity hover:text-foreground"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </a>
-                  )}
-                </div>
-              </div>
-            ))}
+            <ExpandableList
+              initialCount={6}
+              showMoreLabel="Ver todo el historial"
+              showLessLabel="Ver menos"
+              items={(paidReceipts as ReceiptRow[]).map((receipt) => (
+                <PaidReceiptRow key={receipt.id} receipt={receipt} />
+              ))}
+            />
           </div>
         </section>
       )}
+    </div>
+  )
+}
+
+function PaidReceiptRow({ receipt }: { receipt: ReceiptRow }) {
+  return (
+    <div className="flex items-center justify-between border-t border-border/40 first:border-t-0 px-5 py-4">
+      <div className="flex items-center gap-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/[0.12]">
+          <CheckCircle2 className="h-4 w-4 text-primary" />
+        </div>
+        <div>
+          <p className="text-sm font-medium capitalize text-foreground">
+            {formatPeriod(receipt.period)}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Pagado
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-semibold tabular-nums text-foreground">
+          {receipt.snapshot_currency} {formatAmount(receipt.snapshot_amount)}
+        </span>
+        {receipt.pdf_url && (
+          <a
+            href={receipt.pdf_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground transition-opacity hover:text-foreground"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </a>
+        )}
+      </div>
     </div>
   )
 }

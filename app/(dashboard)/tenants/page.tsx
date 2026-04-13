@@ -1,4 +1,10 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
+
+export const metadata: Metadata = {
+  title: 'Inquilinos | MyRent',
+  description: 'Listado y gestión de inquilinos.',
+}
 import { Suspense } from 'react'
 import { Users, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'

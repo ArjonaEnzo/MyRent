@@ -182,6 +182,7 @@ export function AccountContent({ profile }: AccountContentProps) {
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploadingAvatar}
+                  aria-label="Cambiar foto de perfil"
                   className="relative h-20 w-20 rounded-full overflow-hidden ring-2 ring-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   {avatarPreview ? (

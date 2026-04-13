@@ -221,6 +221,7 @@ export function DraftReceiptEditor({
                     className="h-8 w-8 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive"
                     onClick={() => handleRemoveItem(item.id)}
                     disabled={isPending}
+                    aria-label={`Eliminar ítem ${item.label}`}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>

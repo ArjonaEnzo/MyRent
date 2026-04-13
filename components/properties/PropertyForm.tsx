@@ -5,9 +5,10 @@ import Link from 'next/link'
 import { createProperty, updateProperty } from '@/lib/actions/properties'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { FormField } from '@/components/shared/FormField'
+import { useFormValidation } from '@/lib/hooks/use-form-validation'
+import { propertySchema } from '@/lib/validations/property'
 import type { Database } from '@/types/database.types'
 
 type Property = Database['public']['Tables']['properties']['Row']
@@ -19,12 +20,12 @@ interface PropertyFormProps {
 export function PropertyForm({ property }: PropertyFormProps) {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const { fieldErrors, validateAll, clearFieldError } = useFormValidation(propertySchema)
   const isEditing = !!property
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError('')
-    setLoading(true)
 
     const formData = new FormData(e.currentTarget)
     const data = {
@@ -32,9 +33,13 @@ export function PropertyForm({ property }: PropertyFormProps) {
       address: formData.get('address') as string,
     }
 
+    const validated = validateAll(data)
+    if (!validated) return
+
+    setLoading(true)
     const result = isEditing
-      ? await updateProperty(property.id, data)
-      : await createProperty(data)
+      ? await updateProperty(property.id, validated)
+      : await createProperty(validated)
 
     if (result && !result.success) {
       setError(result.error || 'Error desconocido')
@@ -52,29 +57,27 @@ export function PropertyForm({ property }: PropertyFormProps) {
         </Alert>
       )}
 
-      <div className="space-y-2">
-        <Label htmlFor="name">Nombre de la propiedad</Label>
-        <Input
-          id="name"
-          name="name"
-          type="text"
-          required
-          defaultValue={property?.name}
-          placeholder="Ej: Departamento Centro"
-        />
-      </div>
+      <FormField
+        label="Nombre de la propiedad"
+        name="name"
+        type="text"
+        required
+        defaultValue={property?.name}
+        placeholder="Ej: Departamento Centro"
+        error={fieldErrors.name}
+        onFocus={() => clearFieldError('name')}
+      />
 
-      <div className="space-y-2">
-        <Label htmlFor="address">Dirección</Label>
-        <Input
-          id="address"
-          name="address"
-          type="text"
-          required
-          defaultValue={property?.address}
-          placeholder="Ej: Av. Corrientes 1234, CABA"
-        />
-      </div>
+      <FormField
+        label="Dirección"
+        name="address"
+        type="text"
+        required
+        defaultValue={property?.address}
+        placeholder="Ej: Av. Corrientes 1234, CABA"
+        error={fieldErrors.address}
+        onFocus={() => clearFieldError('address')}
+      />
 
       <div className="flex gap-3">
         <Button type="submit" disabled={loading}>

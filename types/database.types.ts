@@ -145,6 +145,68 @@ export type Database = {
           },
         ]
       }
+      billing_notifications: {
+        Row: {
+          account_id: string
+          created_at: string
+          id: string
+          lease_id: string
+          notification_type: string
+          period: string
+          recipient_email: string | null
+          sent_at: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          id?: string
+          lease_id: string
+          notification_type: string
+          period: string
+          recipient_email?: string | null
+          sent_at?: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          id?: string
+          lease_id?: string
+          notification_type?: string
+          period?: string
+          recipient_email?: string | null
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_notifications_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_dashboard_overview"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "billing_notifications_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_notifications_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
+            referencedRelation: "leases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_notifications_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
+            referencedRelation: "leases_overview"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hellosign_events: {
         Row: {
           account_id: string | null
@@ -742,6 +804,78 @@ export type Database = {
         }
         Relationships: []
       }
+      receipt_line_items: {
+        Row: {
+          account_id: string
+          amount: number
+          created_at: string
+          id: string
+          item_type: string
+          label: string
+          receipt_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          amount: number
+          created_at?: string
+          id?: string
+          item_type?: string
+          label: string
+          receipt_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          amount?: number
+          created_at?: string
+          id?: string
+          item_type?: string
+          label?: string
+          receipt_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipt_line_items_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_dashboard_overview"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "receipt_line_items_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_line_items_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "active_receipts_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_line_items_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "receipts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_line_items_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "receipts_overview"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       receipts: {
         Row: {
           account_id: string
@@ -885,57 +1019,6 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      receipt_line_items: {
-        Row: {
-          id: string
-          receipt_id: string
-          account_id: string
-          label: string
-          amount: number
-          item_type: string
-          sort_order: number
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          receipt_id: string
-          account_id: string
-          label: string
-          amount: number
-          item_type?: string
-          sort_order?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          receipt_id?: string
-          account_id?: string
-          label?: string
-          amount?: number
-          item_type?: string
-          sort_order?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "receipt_line_items_receipt_id_fkey"
-            columns: ["receipt_id"]
-            isOneToOne: false
-            referencedRelation: "receipts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "receipt_line_items_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "accounts"
             referencedColumns: ["id"]
           },
         ]
@@ -1742,89 +1825,6 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      finalize_receipt: {
-        Args: {
-          p_actor_user_id: string
-          p_account_id: string
-          p_receipt_id: string
-        }
-        Returns: {
-          account_id: string
-          auto_generated: boolean
-          created_at: string
-          delete_reason: string | null
-          deleted_at: string | null
-          deleted_by: string | null
-          description: string | null
-          email_sent: boolean
-          id: string
-          landlord_signed_at: string | null
-          lease_id: string
-          pdf_url: string | null
-          period: string
-          property_id: string
-          signature_provider: string | null
-          signature_request_id: string | null
-          signature_status: string | null
-          snapshot_amount: number
-          snapshot_currency: string
-          snapshot_payload: Json | null
-          snapshot_property_address: string
-          snapshot_tenant_dni_cuit: string | null
-          snapshot_tenant_name: string
-          status: string
-          storage_path: string | null
-          tenant_id: string
-          tenant_signed_at: string | null
-        }
-        SetofOptions: {
-          from: "*"
-          to: "receipts"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
-      generate_draft_receipt: {
-        Args: {
-          p_lease_id: string
-          p_period: string
-        }
-        Returns: {
-          account_id: string
-          auto_generated: boolean
-          created_at: string
-          delete_reason: string | null
-          deleted_at: string | null
-          deleted_by: string | null
-          description: string | null
-          email_sent: boolean
-          id: string
-          landlord_signed_at: string | null
-          lease_id: string
-          pdf_url: string | null
-          period: string
-          property_id: string
-          signature_provider: string | null
-          signature_request_id: string | null
-          signature_status: string | null
-          snapshot_amount: number
-          snapshot_currency: string
-          snapshot_payload: Json | null
-          snapshot_property_address: string
-          snapshot_tenant_dni_cuit: string | null
-          snapshot_tenant_name: string
-          status: string
-          storage_path: string | null
-          tenant_id: string
-          tenant_signed_at: string | null
-        }
-        SetofOptions: {
-          from: "*"
-          to: "receipts"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
       cancel_receipt: {
         Args: {
           p_account_id: string
@@ -1834,6 +1834,7 @@ export type Database = {
         }
         Returns: {
           account_id: string
+          auto_generated: boolean
           created_at: string
           delete_reason: string | null
           deleted_at: string | null
@@ -1881,6 +1882,86 @@ export type Database = {
         Args: { p_account_id: string; p_roles: string[]; p_user_id: string }
         Returns: undefined
       }
+      finalize_receipt: {
+        Args: {
+          p_account_id: string
+          p_actor_user_id: string
+          p_receipt_id: string
+        }
+        Returns: {
+          account_id: string
+          auto_generated: boolean
+          created_at: string
+          delete_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          description: string | null
+          email_sent: boolean
+          id: string
+          landlord_signed_at: string | null
+          lease_id: string
+          pdf_url: string | null
+          period: string
+          property_id: string
+          signature_provider: string | null
+          signature_request_id: string | null
+          signature_status: string | null
+          snapshot_amount: number
+          snapshot_currency: string
+          snapshot_payload: Json | null
+          snapshot_property_address: string
+          snapshot_tenant_dni_cuit: string | null
+          snapshot_tenant_name: string
+          status: string
+          storage_path: string | null
+          tenant_id: string
+          tenant_signed_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "receipts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      generate_draft_receipt: {
+        Args: { p_lease_id: string; p_period: string }
+        Returns: {
+          account_id: string
+          auto_generated: boolean
+          created_at: string
+          delete_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          description: string | null
+          email_sent: boolean
+          id: string
+          landlord_signed_at: string | null
+          lease_id: string
+          pdf_url: string | null
+          period: string
+          property_id: string
+          signature_provider: string | null
+          signature_request_id: string | null
+          signature_status: string | null
+          snapshot_amount: number
+          snapshot_currency: string
+          snapshot_payload: Json | null
+          snapshot_property_address: string
+          snapshot_tenant_dni_cuit: string | null
+          snapshot_tenant_name: string
+          status: string
+          storage_path: string | null
+          tenant_id: string
+          tenant_signed_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "receipts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_tenant_id_for_user: { Args: never; Returns: string }
       has_account_role: {
         Args: { p_account_id: string; p_roles: string[]; p_user_id: string }
@@ -1891,92 +1972,50 @@ export type Database = {
         Returns: boolean
       }
       is_tenant_user: { Args: never; Returns: boolean }
-      issue_receipt:
-        | {
-            Args: {
-              p_account_id: string
-              p_description?: string
-              p_lease_id: string
-              p_period: string
-            }
-            Returns: {
-              account_id: string
-              created_at: string
-              delete_reason: string | null
-              deleted_at: string | null
-              deleted_by: string | null
-              description: string | null
-              email_sent: boolean
-              id: string
-              landlord_signed_at: string | null
-              lease_id: string
-              pdf_url: string | null
-              period: string
-              property_id: string
-              signature_provider: string | null
-              signature_request_id: string | null
-              signature_status: string | null
-              snapshot_amount: number
-              snapshot_currency: string
-              snapshot_payload: Json | null
-              snapshot_property_address: string
-              snapshot_tenant_dni_cuit: string | null
-              snapshot_tenant_name: string
-              status: string
-              storage_path: string | null
-              tenant_id: string
-              tenant_signed_at: string | null
-            }
-            SetofOptions: {
-              from: "*"
-              to: "receipts"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
-        | {
-            Args: {
-              p_account_id: string
-              p_actor_user_id: string
-              p_description?: string
-              p_lease_id: string
-              p_period: string
-            }
-            Returns: {
-              account_id: string
-              created_at: string
-              delete_reason: string | null
-              deleted_at: string | null
-              deleted_by: string | null
-              description: string | null
-              email_sent: boolean
-              id: string
-              landlord_signed_at: string | null
-              lease_id: string
-              pdf_url: string | null
-              period: string
-              property_id: string
-              signature_provider: string | null
-              signature_request_id: string | null
-              signature_status: string | null
-              snapshot_amount: number
-              snapshot_currency: string
-              snapshot_payload: Json | null
-              snapshot_property_address: string
-              snapshot_tenant_dni_cuit: string | null
-              snapshot_tenant_name: string
-              status: string
-              storage_path: string | null
-              tenant_id: string
-              tenant_signed_at: string | null
-            }
-            SetofOptions: {
-              from: "*"
-              to: "receipts"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
+      issue_receipt: {
+        Args: {
+          p_account_id: string
+          p_actor_user_id: string
+          p_description?: string
+          p_lease_id: string
+          p_period: string
+        }
+        Returns: {
+          account_id: string
+          auto_generated: boolean
+          created_at: string
+          delete_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          description: string | null
+          email_sent: boolean
+          id: string
+          landlord_signed_at: string | null
+          lease_id: string
+          pdf_url: string | null
+          period: string
+          property_id: string
+          signature_provider: string | null
+          signature_request_id: string | null
+          signature_status: string | null
+          snapshot_amount: number
+          snapshot_currency: string
+          snapshot_payload: Json | null
+          snapshot_property_address: string
+          snapshot_tenant_dni_cuit: string | null
+          snapshot_tenant_name: string
+          status: string
+          storage_path: string | null
+          tenant_id: string
+          tenant_signed_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "receipts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       register_payment: {
         Args: {
           p_account_id: string
