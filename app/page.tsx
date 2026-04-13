@@ -266,7 +266,7 @@ export default function HomePage() {
       <section className="relative isolate overflow-hidden min-h-[820px] flex items-center pt-32 pb-28 sm:pt-36 sm:pb-36">
         <div aria-hidden className="absolute inset-0 -z-30 bg-slate-950 bg-cover bg-center" style={{ backgroundImage: `url(${HERO_VIDEO_POSTER})` }} />
         {videoLoaded && (
-          <video ref={heroVideoRef} src={HERO_VIDEO_SRC} poster={HERO_VIDEO_POSTER} autoPlay muted loop playsInline preload="none" onPlay={() => setVideoPlaying(true)} aria-hidden className="absolute inset-0 -z-20 h-full w-full object-cover opacity-40" />
+          <video ref={heroVideoRef} src={HERO_VIDEO_SRC} poster={HERO_VIDEO_POSTER} autoPlay muted loop playsInline preload="none" aria-hidden className="absolute inset-0 -z-20 h-full w-full object-cover opacity-40" />
         )}
         <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-b from-slate-950/80 via-slate-950/60 to-slate-950" />
 
