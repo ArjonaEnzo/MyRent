@@ -5,8 +5,11 @@ interface LogContext {
 }
 
 /**
- * Logger simple para desarrollo
- * TODO: En producción, integrar con Sentry, Datadog, etc.
+ * Structured logger with ISO timestamps and JSON context.
+ *
+ * In production, logs are captured by Vercel Log Drains and can be forwarded
+ * to any observability backend (Datadog, Grafana, Sentry, etc.) without
+ * changing application code.
  */
 class Logger {
   private formatMessage(level: LogLevel, message: string, context?: LogContext): string {
@@ -25,11 +28,6 @@ class Logger {
 
   error(message: string, context?: LogContext): void {
     console.error(this.formatMessage('error', message, context))
-    
-    // TODO: Enviar a servicio de monitoreo (Sentry, Datadog, etc.)
-    // if (process.env.NODE_ENV === 'production') {
-    //   Sentry.captureException(new Error(message), { extra: context })
-    // }
   }
 
   debug(message: string, context?: LogContext): void {
