@@ -38,6 +38,13 @@ export async function signup(formData: SignupInput) {
       email: validatedData.email
     })
 
+    // If email confirmation is required, the user won't have a valid session yet.
+    // Redirect to login with a message instead of /dashboard (which would bounce
+    // back to /login silently via middleware).
+    if (data.user && !data.user.email_confirmed_at) {
+      redirect('/login?signup=success')
+    }
+
     redirect('/dashboard')
 
   } catch (error) {

@@ -42,7 +42,7 @@ Before reporting any task complete: run `pnpm test` and `pnpm type-check`.
 - `app/(dashboard)/` — Protected routes: dashboard, properties, tenants, leases, receipts (CRUD pages). Middleware redirects unauthenticated users to `/login`.
 - `app/tenant/` — Tenant portal: `login/`, `(portal)/dashboard/`, `(portal)/payment/{success,failure,pending}/`. Middleware redirects unauthenticated tenants to `/tenant/login`. Tenants are linked to auth users via `tenants.auth_user_id`.
 - `app/api/webhooks/` — External webhook handlers: `hellosign/route.ts` (digital signatures), `mercadopago/route.ts` (payment callbacks).
-- `app/api/cron/` — Vercel Cron endpoints: `generate-receipts/route.ts` (daily draft receipt generation for auto-billing leases).
+- `app/api/cron/` — Vercel Cron endpoints: `daily-billing/route.ts` (active endpoint — runs pre-billing notifications and draft receipt generation); `generate-receipts/route.ts` (deprecated redirect to `daily-billing`).
 
 > **Two auth contexts**: Staff users authenticate via `getCurrentUserWithAccount()` from `lib/supabase/auth.ts`. Tenant portal users authenticate via `getCurrentTenant()` from `lib/supabase/tenant-auth.ts` — returns `{ user, tenantId, accountId, supabase }`. Staff logins and tenant logins share the same Supabase Auth instance but are separated by RLS policies. Never mix the two contexts in the same action.
 
@@ -92,7 +92,7 @@ import { isRedirectError } from 'next/dist/client/components/redirect'
 - **`lib/utils.ts`** — Shadcn `cn()` utility (clsx + tailwind-merge).
 - **`lib/i18n/translations.ts`** — Spanish/English UI string translations; used via `language-provider` context.
 - **`lib/pdf/receipt-template.tsx`** — React PDF component for receipt generation.
-- **`lib/email/receipt-email.ts`** — Sends receipt email via Resend with PDF download link.
+- **`lib/email/`** — Email senders via Resend: `receipt-email.ts` (PDF download link), `tenant-heads-up-email.ts` (pre-billing notification to tenant, 7 days ahead), `landlord-reminder-email.ts` (pre-billing reminder to landlord, 5 days ahead), `email-utils.ts` (HTML templating helpers).
 - **`lib/signatures/hellosign-client.ts`** — HelloSign (Dropbox Sign) client for digital signatures.
 - **`lib/env.ts`** — Zod-validated environment variables.
 - **`components/`** — Organized by domain: `ui/` (Shadcn), `dashboard/`, `properties/`, `tenants/`, `leases/`, `receipts/`, `account/`, `tenant/` (portal), `providers/`, `shared/`.
@@ -196,7 +196,13 @@ Staff can also record offline payments (cash/transfer) via `registerManualPaymen
 
 ## Automated Billing (Vercel Cron)
 
-`/api/cron/generate-receipts` runs daily at 08:00 UTC (05:00 ART) via Vercel Cron (`vercel.json`). It generates draft receipts for active leases with `auto_billing_enabled = true` where `billing_day` matches today's day in Argentina timezone. Protected by `CRON_SECRET` env var (Vercel sends `Authorization: Bearer <CRON_SECRET>`).
+`/api/cron/daily-billing` runs daily at 08:00 UTC (05:00 ART) via Vercel Cron (`vercel.json`). Protected by `CRON_SECRET` env var (Vercel sends `Authorization: Bearer <CRON_SECRET>`). Runs three sequential tasks:
+
+1. **Tenant pre-billing notifications** — sends heads-up emails to tenants whose billing day is 7 days out
+2. **Landlord reminders** — sends reminder emails to landlords whose leases bill in 5 days
+3. **Draft receipt generation** — creates draft receipts for active leases with `auto_billing_enabled = true` where `billing_day` matches today's day in Argentina timezone
+
+Notifications use the `billing_notifications` table for idempotency (prevents duplicate sends).
 
 ## Digital Signatures Flow (Optional)
 

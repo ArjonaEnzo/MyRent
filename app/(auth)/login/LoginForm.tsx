@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { login } from '@/lib/actions/auth'
 import { Building2, Lock } from 'lucide-react'
@@ -18,6 +19,8 @@ export default function LoginForm() {
   const [error, setError] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const { t } = useLanguage()
+  const searchParams = useSearchParams()
+  const signupSuccess = searchParams.get('signup') === 'success'
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -194,6 +197,20 @@ export default function LoginForm() {
 
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
+                {signupSuccess && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Alert className="border-primary/30 bg-primary/5 text-primary">
+                      <AlertDescription>
+                        Te enviamos un email de confirmación. Verificá tu bandeja de entrada antes de iniciar sesión.
+                      </AlertDescription>
+                    </Alert>
+                  </motion.div>
+                )}
+
                 {error && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
