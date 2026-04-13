@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 // Security headers aplicados a todas las rutas
+const isDev = process.env.NODE_ENV === 'development'
+
 const securityHeaders = [
   {
     key: "X-DNS-Prefetch-Control",
@@ -30,7 +32,7 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Next.js requiere unsafe-inline/eval para dev
+      `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`, // unsafe-eval solo en dev (Next.js HMR)
       "style-src 'self' 'unsafe-inline'", // Tailwind requiere unsafe-inline
       "img-src 'self' data: https://*.supabase.co https://res.cloudinary.com",
       "media-src 'self' https://res.cloudinary.com",

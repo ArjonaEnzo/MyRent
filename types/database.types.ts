@@ -11,6 +11,11 @@ export type PaymentProvider = 'manual' | 'mercadopago' | 'stripe' | 'bank_transf
 export type SignatureStatus = 'pending' | 'landlord_signed' | 'fully_signed' | 'declined' | 'expired'
 export type LineItemType = 'rent' | 'expensas' | 'extra' | 'discount' | 'tax'
 
+/** Discriminated union for server action return types */
+export type ActionResult<T = void> =
+  | (T extends void ? { success: true } : { success: true; data: T })
+  | { success: false; error: string; errors?: { message: string; path: (string | number)[] }[] }
+
 export type PropertyImage = {
   id: string
   account_id: string

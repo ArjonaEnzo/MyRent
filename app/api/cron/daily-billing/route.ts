@@ -1,3 +1,4 @@
+import crypto from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { env } from '@/lib/env'
@@ -49,12 +50,20 @@ async function insertNotification(
  * 3. Genera borradores de recibos (día de cobro)
  */
 export async function GET(request: Request) {
-  // Verificar CRON_SECRET
-  if (env.CRON_SECRET) {
-    const authHeader = request.headers.get('authorization')
-    if (authHeader !== `Bearer ${env.CRON_SECRET}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  // Verificar CRON_SECRET — fail-closed: si no está configurado, rechazar siempre
+  const cronSecret = env.CRON_SECRET
+  if (!cronSecret) {
+    logger.error('Cron: CRON_SECRET is not configured — rejecting request')
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const authHeader = request.headers.get('authorization')
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : ''
+  const expected = Buffer.from(cronSecret, 'utf-8')
+  const provided = Buffer.from(token, 'utf-8')
+
+  if (expected.length !== provided.length || !crypto.timingSafeEqual(expected, provided)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const supabase = createAdminClient()

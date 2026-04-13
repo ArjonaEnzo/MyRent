@@ -148,8 +148,10 @@ export async function getProperties(options?: {
 
   const page = options?.page ?? 1
   const limit = options?.limit ?? 50
-  const from = (page - 1) * limit
-  const to = from + limit - 1
+  const safePage = Math.max(1, Math.floor(page))
+  const safeLimit = Math.min(Math.max(1, limit), 100)
+  const from = (safePage - 1) * safeLimit
+  const to = from + safeLimit - 1
 
   let query = supabase
     .from('properties')
@@ -160,7 +162,7 @@ export async function getProperties(options?: {
   if (options?.search) {
     // Sanitizar caracteres especiales del parser de PostgREST (.or string)
     // , ( ) tienen significado especial y romperían el filtro si vienen del usuario.
-    const safeSearch = options.search.replace(/[,()\\.]/g, ' ').trim()
+    const safeSearch = options.search.replace(/[,()\\._%;:]/g, ' ').trim()
     if (safeSearch) {
       query = query.or(`name.ilike.%${safeSearch}%,address.ilike.%${safeSearch}%`)
     }

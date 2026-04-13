@@ -74,4 +74,128 @@ describe('leaseSchema', () => {
     expect(result.success).toBe(false)
     expect(result.error?.issues[0].path).toContain('notes')
   })
+
+  // ─── Adjustment type validations ─────────────────────────────────────────────
+
+  it('rechaza adjustment_type percentage sin adjustment_percentage', () => {
+    const result = leaseSchema.safeParse({
+      ...validLease,
+      adjustment_type: 'percentage',
+      adjustment_frequency_months: 3,
+    })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      const paths = result.error.issues.map((i) => i.path).flat()
+      expect(paths).toContain('adjustment_percentage')
+    }
+  })
+
+  it('rechaza adjustment_type index sin adjustment_index', () => {
+    const result = leaseSchema.safeParse({
+      ...validLease,
+      adjustment_type: 'index',
+      adjustment_frequency_months: 6,
+    })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      const paths = result.error.issues.map((i) => i.path).flat()
+      expect(paths).toContain('adjustment_index')
+    }
+  })
+
+  it('rechaza adjustment_type fixed_amount sin adjustment_fixed_amount', () => {
+    const result = leaseSchema.safeParse({
+      ...validLease,
+      adjustment_type: 'fixed_amount',
+      adjustment_frequency_months: 12,
+    })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      const paths = result.error.issues.map((i) => i.path).flat()
+      expect(paths).toContain('adjustment_fixed_amount')
+    }
+  })
+
+  it('acepta adjustment_type percentage con todos los campos requeridos', () => {
+    const result = leaseSchema.safeParse({
+      ...validLease,
+      adjustment_type: 'percentage',
+      adjustment_frequency_months: 3,
+      adjustment_percentage: 10,
+    })
+    expect(result.success).toBe(true)
+  })
+
+  // ─── billing_day boundaries ──────────────────────────────────────────────────
+
+  it('rechaza billing_day 0 (inválido)', () => {
+    const result = leaseSchema.safeParse({ ...validLease, billing_day: 0 })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      const paths = result.error.issues.map((i) => i.path).flat()
+      expect(paths).toContain('billing_day')
+    }
+  })
+
+  it('acepta billing_day 1 (mínimo válido)', () => {
+    const result = leaseSchema.safeParse({ ...validLease, billing_day: 1 })
+    expect(result.success).toBe(true)
+  })
+
+  it('acepta billing_day 28 (máximo válido)', () => {
+    const result = leaseSchema.safeParse({ ...validLease, billing_day: 28 })
+    expect(result.success).toBe(true)
+  })
+
+  it('rechaza billing_day 29 (inválido)', () => {
+    const result = leaseSchema.safeParse({ ...validLease, billing_day: 29 })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      const paths = result.error.issues.map((i) => i.path).flat()
+      expect(paths).toContain('billing_day')
+    }
+  })
+
+  // ─── end_date vs start_date ──────────────────────────────────────────────────
+
+  it('rechaza end_date anterior a start_date', () => {
+    const result = leaseSchema.safeParse({
+      ...validLease,
+      start_date: '2026-06-01',
+      end_date: '2026-01-01',
+    })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      const paths = result.error.issues.map((i) => i.path).flat()
+      expect(paths).toContain('end_date')
+    }
+  })
+
+  it('rechaza end_date igual a start_date', () => {
+    const result = leaseSchema.safeParse({
+      ...validLease,
+      start_date: '2026-06-01',
+      end_date: '2026-06-01',
+    })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      const paths = result.error.issues.map((i) => i.path).flat()
+      expect(paths).toContain('end_date')
+    }
+  })
+
+  // ─── adjustment_type requires adjustment_frequency_months ────────────────────
+
+  it('rechaza adjustment_type != none sin adjustment_frequency_months', () => {
+    const result = leaseSchema.safeParse({
+      ...validLease,
+      adjustment_type: 'percentage',
+      adjustment_percentage: 10,
+    })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      const paths = result.error.issues.map((i) => i.path).flat()
+      expect(paths).toContain('adjustment_frequency_months')
+    }
+  })
 })

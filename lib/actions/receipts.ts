@@ -15,6 +15,12 @@ import type { Database } from '@/types/database.types'
 type Receipt = Database['public']['Tables']['receipts']['Row']
 type ReceiptLineItem = Database['public']['Tables']['receipt_line_items']['Row']
 type ReceiptWithTenant = Receipt & { tenants: { full_name: string; email: string | null } | null }
+
+/** Type-safe receipt query with tenant join */
+function asReceiptWithTenant(data: unknown): ReceiptWithTenant {
+  return data as ReceiptWithTenant
+}
+
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { isRedirectError } from 'next/dist/client/components/redirect-error'
@@ -233,8 +239,10 @@ export async function getReceipts(options?: {
 
   const page = options?.page ?? 1
   const limit = options?.limit ?? 50
-  const from = (page - 1) * limit
-  const to = from + limit - 1
+  const safePage = Math.max(1, Math.floor(page))
+  const safeLimit = Math.min(Math.max(1, limit), 100)
+  const from = (safePage - 1) * safeLimit
+  const to = from + safeLimit - 1
 
   let query = supabase
     .from('receipts')
@@ -243,7 +251,7 @@ export async function getReceipts(options?: {
     .is('deleted_at', null)
 
   if (options?.search) {
-    const safeSearch = options.search.replace(/[,()\\.]/g, ' ').trim()
+    const safeSearch = options.search.replace(/[,()\\._%;:]/g, ' ').trim()
     if (safeSearch) {
       query = query.or(`snapshot_tenant_name.ilike.%${safeSearch}%,period.ilike.%${safeSearch}%`)
     }
@@ -258,7 +266,7 @@ export async function getReceipts(options?: {
     return { receipts: [], total: 0 }
   }
 
-  return { receipts: data as unknown as ReceiptWithTenant[], total: count ?? 0 }
+  return { receipts: (data ?? []).map(asReceiptWithTenant), total: count ?? 0 }
 }
 
 export async function getReceipt(id: string): Promise<ReceiptWithTenant | null> {
@@ -278,7 +286,7 @@ export async function getReceipt(id: string): Promise<ReceiptWithTenant | null> 
     return null
   }
 
-  return data as unknown as ReceiptWithTenant
+  return asReceiptWithTenant(data)
 }
 
 // ─── Draft Receipt Line Items ────────────────────────────────────────────────
@@ -306,7 +314,7 @@ export async function getReceiptWithLineItems(receiptId: string) {
     .order('created_at', { ascending: true })
 
   return {
-    receipt: receipt as unknown as ReceiptWithTenant,
+    receipt: asReceiptWithTenant(receipt),
     lineItems: (lineItems ?? []) as ReceiptLineItem[],
   }
 }

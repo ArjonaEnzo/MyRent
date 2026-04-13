@@ -111,8 +111,10 @@ export async function getLeases(options?: {
 
   const page = options?.page ?? 1
   const limit = options?.limit ?? 50
-  const from = (page - 1) * limit
-  const to = from + limit - 1
+  const safePage = Math.max(1, Math.floor(page))
+  const safeLimit = Math.min(Math.max(1, limit), 100)
+  const from = (safePage - 1) * safeLimit
+  const to = from + safeLimit - 1
 
   let query = supabase
     .from('leases_overview')
@@ -241,6 +243,7 @@ export async function getLeaseAdjustments(leaseId: string): Promise<LeaseAdjustm
 export async function applyAdjustment(formData: LeaseAdjustmentInput) {
   try {
     const { user, accountId, supabase } = await getCurrentUserWithAccount()
+    await requireRole(supabase, accountId, user.id, ['owner', 'admin'])
     const validated = leaseAdjustmentSchema.parse(formData)
     const validLeaseId = validateId(validated.lease_id)
 

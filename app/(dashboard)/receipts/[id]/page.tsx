@@ -37,6 +37,7 @@ export default async function ReceiptDetailPage({
 }: {
   params: Promise<{ id: string }>
 }) {
+  const isHelloSignConfigured = !!process.env.HELLOSIGN_API_KEY
   const { id } = await params
   const receipt = await getReceipt(id)
 
@@ -163,7 +164,7 @@ export default async function ReceiptDetailPage({
         </CardContent>
       </Card>
 
-      {process.env.HELLOSIGN_API_KEY && (
+      {isHelloSignConfigured && (
         <SignatureStatus
           receiptId={receipt.id}
           signatureStatus={receipt.signature_status}
