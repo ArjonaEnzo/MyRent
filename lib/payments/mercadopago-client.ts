@@ -12,12 +12,14 @@
  *   3. getPaymentDetails()          → estado definitivo del pago
  */
 
-import { MercadoPagoConfig, Preference, Payment } from 'mercadopago'
+import { MercadoPagoConfig, Payment } from 'mercadopago'
 import { createHmac, timingSafeEqual } from 'crypto'
 import { env } from '@/lib/env'
 
-/** Ventana máxima de antigüedad aceptada para el timestamp del webhook (replay protection) */
-const MP_WEBHOOK_MAX_SKEW_MS = 5 * 60 * 1000
+/** Ventana máxima de antigüedad aceptada para el timestamp del webhook (replay protection).
+ *  MP retries with exponential backoff (up to ~48h), so we allow a generous window
+ *  to avoid rejecting legitimate retries while still protecting against replay attacks. */
+const MP_WEBHOOK_MAX_SKEW_MS = 60 * 60 * 1000
 
 // ─── Client factory ───────────────────────────────────────────────────────────
 
@@ -103,57 +105,63 @@ export type CreatePreferenceInput = {
 export async function createCheckoutPreference(
   input: CreatePreferenceInput
 ): Promise<MPPreferenceResult> {
-  const client = getMPClient()
-  const preferenceClient = new Preference(client)
+  if (!env.MERCADOPAGO_ACCESS_TOKEN) {
+    throw new Error('MERCADOPAGO_ACCESS_TOKEN no configurado.')
+  }
 
   const appUrl = env.NEXT_PUBLIC_APP_URL
   const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)/.test(appUrl)
 
-  const result = await preferenceClient.create({
-    body: {
-      items: [
-        {
-          id: input.paymentId,
-          title: input.title,
-          quantity: 1,
-          unit_price: input.amount,
-          currency_id: input.currency,
-        },
-      ],
+  // Build the request body matching MP Checkout Pro API
+  // Using direct fetch instead of SDK for better serverless compatibility
+  const body: Record<string, unknown> = {
+    items: [
+      {
+        id: input.paymentId,
+        title: input.title,
+        quantity: 1,
+        unit_price: input.amount,
+        currency_id: input.currency,
+      },
+    ],
+    external_reference: input.paymentId,
+    statement_descriptor: 'MYRENT',
+  }
 
-      payer: input.payerEmail
-        ? {
-            email: input.payerEmail,
-            name: input.payerName ?? undefined,
-          }
-        : undefined,
+  if (input.payerEmail) {
+    body.payer = {
+      email: input.payerEmail,
+      ...(input.payerName ? { name: input.payerName } : {}),
+    }
+  }
 
-      // Redireccionamientos post-pago. MP exige URLs públicas; en dev con
-      // localhost omitimos back_urls y auto_return (MP los rechaza).
-      ...(isLocalhost
-        ? {}
-        : {
-            back_urls: {
-              success: `${appUrl}/tenant/payment/success?payment_id=${input.paymentId}`,
-              failure: `${appUrl}/tenant/payment/failure?payment_id=${input.paymentId}`,
-              pending: `${appUrl}/tenant/payment/pending?payment_id=${input.paymentId}`,
-            },
-            auto_return: 'approved' as const,
-          }),
+  if (!isLocalhost) {
+    body.back_urls = {
+      success: `${appUrl}/tenant/payment/success?payment_id=${input.paymentId}`,
+      failure: `${appUrl}/tenant/payment/failure?payment_id=${input.paymentId}`,
+      pending: `${appUrl}/tenant/payment/pending?payment_id=${input.paymentId}`,
+    }
+    body.auto_return = 'approved'
+    body.notification_url = `${appUrl}/api/webhooks/mercadopago`
+  }
 
-      // Identificador que MP devuelve en el webhook — es nuestro payments.id
-      external_reference: input.paymentId,
-
-      // URL donde MP envía las notificaciones. En dev con localhost se omite
-      // (MP no puede alcanzarla; usar un tunnel tipo ngrok/cloudflared).
-      ...(isLocalhost
-        ? {}
-        : { notification_url: `${appUrl}/api/webhooks/mercadopago` }),
-
-      // Texto que aparece en el resumen del banco del pagador
-      statement_descriptor: 'MYRENT',
+  const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${env.MERCADOPAGO_ACCESS_TOKEN}`,
     },
+    body: JSON.stringify(body),
   })
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => 'no body')
+    throw new Error(
+      `MP API error ${response.status}: ${errorText}`
+    )
+  }
+
+  const result = await response.json()
 
   if (!result.id || !result.init_point) {
     throw new Error('Mercado Pago no devolvió un init_point válido')
