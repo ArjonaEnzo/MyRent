@@ -14,12 +14,30 @@ const TENANT_NOTIFY_DAYS = 7
 const LANDLORD_NOTIFY_DAYS = 5
 
 /**
- * Helper para acceder a la tabla billing_notifications (aún no en types generados).
- * Remover el cast una vez que se regeneren los types con la migración aplicada.
+ * Helpers para billing_notifications (tabla no está en types generados aún).
+ * TODO: Reemplazar con supabase.from('billing_notifications') cuando se regeneren los types.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function notificationsTable(supabase: ReturnType<typeof createAdminClient>) {
-  return (supabase as any).from('billing_notifications')  // eslint-disable-line @typescript-eslint/no-explicit-any
+async function hasNotification(
+  supabase: ReturnType<typeof createAdminClient>,
+  leaseId: string,
+  period: string,
+  type: string,
+): Promise<boolean> {
+  const { data } = await (supabase.from as Function)('billing_notifications')
+    .select('id')
+    .eq('lease_id', leaseId)
+    .eq('period', period)
+    .eq('notification_type', type)
+    .limit(1)
+    .maybeSingle()
+  return !!data
+}
+
+async function insertNotification(
+  supabase: ReturnType<typeof createAdminClient>,
+  row: { lease_id: string; account_id: string; period: string; notification_type: string; recipient_email: string },
+): Promise<void> {
+  await (supabase.from as Function)('billing_notifications').insert(row)
 }
 
 /**
@@ -141,15 +159,9 @@ async function notifyTenants(
       }
 
       // Check si ya se envió
-      const { data: existing } = await notificationsTable(supabase)
-        .select('id')
-        .eq('lease_id', lease.id)
-        .eq('period', target.period)
-        .eq('notification_type', 'tenant_heads_up')
-        .limit(1)
-        .maybeSingle()
+      const alreadySent = await hasNotification(supabase, lease.id, target.period, 'tenant_heads_up')
 
-      if (existing) {
+      if (alreadySent) {
         result.skipped++
         continue
       }
@@ -167,7 +179,7 @@ async function notifyTenants(
       })
 
       // Registrar notificación enviada
-      await notificationsTable(supabase).insert({
+      await insertNotification(supabase, {
         lease_id: lease.id,
         account_id: lease.account_id!,
         period: target.period,
@@ -228,15 +240,9 @@ async function notifyLandlords(
       const accountId = lease.account_id!
 
       // Check si ya se envió
-      const { data: existing } = await notificationsTable(supabase)
-        .select('id')
-        .eq('lease_id', lease.id)
-        .eq('period', target.period)
-        .eq('notification_type', 'landlord_reminder')
-        .limit(1)
-        .maybeSingle()
+      const alreadySent = await hasNotification(supabase, lease.id, target.period, 'landlord_reminder')
 
-      if (existing) {
+      if (alreadySent) {
         result.skipped++
         continue
       }
@@ -267,7 +273,7 @@ async function notifyLandlords(
       })
 
       // Registrar notificación enviada
-      await notificationsTable(supabase).insert({
+      await insertNotification(supabase, {
         lease_id: lease.id,
         account_id: accountId,
         period: target.period,
