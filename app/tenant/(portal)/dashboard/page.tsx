@@ -90,8 +90,9 @@ export default async function TenantDashboardPage() {
     .order('created_at', { ascending: false })
     .limit(12)
 
+  // Filtrar borradores: el inquilino solo ve recibos finalizados (no drafts)
   const pendingReceipts = (receipts ?? []).filter(
-    (r) => !['paid', 'cancelled'].includes(r.status)
+    (r) => !['draft', 'paid', 'cancelled'].includes(r.status)
   )
   const paidReceipts = (receipts ?? []).filter((r) => r.status === 'paid')
 

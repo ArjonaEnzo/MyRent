@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/cron/generate-receipts",
+      "path": "/api/cron/daily-billing",
       "schedule": "0 8 * * *"
     }
   ]

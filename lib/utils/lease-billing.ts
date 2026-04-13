@@ -39,6 +39,35 @@ export function computeNextAdjustmentDate(
 }
 
 /**
+ * Calcula qué billing_day corresponde a N días en el futuro (zona Argentina).
+ * Devuelve el día del mes y el período YYYY-MM correspondiente.
+ * Útil para cron jobs que necesitan notificar antes del día de cobro.
+ *
+ * Ejemplo: si hoy es 26/04 y daysAhead=5, devuelve { day: 1, period: "2026-05" }
+ */
+export function getUpcomingBillingTarget(daysAhead: number, from?: Date): { day: number; period: string } {
+  const ref = from ?? new Date()
+  const argDate = new Date(ref.toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }))
+  const target = new Date(argDate)
+  target.setDate(target.getDate() + daysAhead)
+  return {
+    day: target.getDate(),
+    period: `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}`,
+  }
+}
+
+/**
+ * Calcula cuántos días faltan desde hoy hasta un día de cobro dado.
+ * Si el día ya pasó este mes, calcula hacia el mes siguiente.
+ */
+export function daysUntilBillingDay(billingDay: number, from?: Date): number {
+  const ref = from ?? new Date()
+  const next = computeNextBillingDate(billingDay, ref)
+  const diffMs = next.getTime() - ref.getTime()
+  return Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+}
+
+/**
  * Formatea una fecha de cobro como "1 de mayo de 2026".
  */
 export function formatBillingDate(date: Date): string {
