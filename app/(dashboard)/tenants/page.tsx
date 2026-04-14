@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   title: 'Inquilinos | MyRent',
   description: 'Listado y gestión de inquilinos.',
 }
+
+// Cache 120s. Mutations bust cache via revalidatePath('/tenants').
+export const revalidate = 120
 import { Suspense } from 'react'
 import { Users, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'

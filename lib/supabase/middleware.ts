@@ -55,10 +55,24 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // Refrescar sesión si existe
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // Refrescar sesión si existe — con timeout de 5s para no colgar la app
+  // si Supabase Auth está degradado. Bajo outage tratamos al usuario como
+  // anónimo en vez de bloquear toda navegación.
+  let user: Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'] = null
+  try {
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Auth timeout after 5s')), 5000)
+    )
+    const result = await Promise.race([
+      supabase.auth.getUser(),
+      timeoutPromise,
+    ])
+    user = result.data.user
+  } catch (err) {
+    console.warn('[middleware] auth.getUser failed — treating as anonymous', {
+      error: err instanceof Error ? err.message : String(err),
+    })
+  }
 
   const pathname = request.nextUrl.pathname
 

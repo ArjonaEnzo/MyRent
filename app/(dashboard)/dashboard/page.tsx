@@ -24,6 +24,9 @@ export const metadata: Metadata = {
   description: 'Panel principal con resumen de propiedades, inquilinos y recibos.',
 }
 
+// Cache 60s — mutations call revalidatePath() to bust early when data changes.
+export const revalidate = 60
+
 // ── Shared date helpers ────────────────────────────────────────────────
 
 function getDashboardDates() {

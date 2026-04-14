@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/utils/logger'
 import {
@@ -210,6 +211,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       canonicalStatus,
       action,
     })
+
+    // Bust cached tenant + staff pages so new payment status shows immediately.
+    revalidatePath('/tenant/dashboard')
+    revalidatePath('/receipts')
+    revalidatePath(`/receipts/${ourPayment.receipt_id}`)
+    revalidatePath('/dashboard')
   }
 
   // ── 8. Respuesta requerida por MP ───────────────────────────────────────────

@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   title: 'Contratos | MyRent',
   description: 'Listado y gestión de contratos de alquiler.',
 }
+
+// Cache 120s. Mutations bust cache via revalidatePath('/leases').
+export const revalidate = 120
 import { Button } from '@/components/ui/button'
 import { LeaseActions } from '@/components/leases/LeaseActions'
 import { PageHeader } from '@/components/shared/PageHeader'

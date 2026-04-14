@@ -6,6 +6,7 @@ import { logger } from '@/lib/utils/logger'
 import { getUpcomingBillingTarget } from '@/lib/utils/lease-billing'
 import { sendLandlordReminderEmail } from '@/lib/email/landlord-reminder-email'
 import { sendTenantHeadsUpEmail } from '@/lib/email/tenant-heads-up-email'
+import { sendAdminAlertEmail } from '@/lib/email/admin-alert-email'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -105,6 +106,21 @@ export async function GET(request: Request) {
   } catch (err) {
     logger.error('Cron: receipt generation phase failed', { error: String(err) })
     results.receiptsGenerated.errors.push({ leaseId: 'N/A', error: String(err) })
+  }
+
+  // Alerta al admin si alguna fase tuvo errores
+  const hasErrors =
+    results.tenantNotifications.errors.length > 0 ||
+    results.landlordNotifications.errors.length > 0 ||
+    results.receiptsGenerated.errors.length > 0
+
+  if (hasErrors) {
+    await sendAdminAlertEmail({
+      subject: 'Cron daily-billing tuvo errores',
+      heading: 'Cron billing falló parcialmente',
+      body: 'El cron de facturación diaria completó pero con errores. Revisá logs y estado de contratos.',
+      details: results,
+    })
   }
 
   logger.info('Cron: daily-billing completed', results)

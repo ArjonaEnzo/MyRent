@@ -36,6 +36,10 @@ export const metadata: Metadata = {
   description: 'Panel del inquilino con contratos, recibos y pagos.',
 }
 
+// Cache 30s — tenant needs near-real-time payment status visibility.
+// Webhook MP revalidates tenant paths on payment confirmed.
+export const revalidate = 30
+
 type LeaseOverview = Database['public']['Views']['leases_overview']['Row']
 type ReceiptRow = Database['public']['Tables']['receipts']['Row']
 

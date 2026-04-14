@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   title: 'Recibos | MyRent',
   description: 'Listado y gestión de recibos de alquiler.',
 }
+
+// Cache 60s — billing data, more aggressive than other lists.
+export const revalidate = 60
 import { FileText, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
