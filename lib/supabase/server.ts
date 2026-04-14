@@ -45,11 +45,17 @@ export async function createClient() {
  * - NUNCA usar para queries que requieren validación de owner_id
  * - Este cliente bypasea completamente RLS
  *
- * Sin cookies: Un cliente admin no necesita gestión de sesión ya que
- * usa service_role key que tiene permisos totales sin autenticación.
+ * Singleton: el cliente admin no tiene estado de sesión, así que se reusa
+ * entre requests dentro de la misma instancia serverless. Esto evita crear
+ * cientos de conexiones bajo carga concurrente (300 requests = 1 cliente,
+ * no 300).
  */
+let adminClientInstance: ReturnType<typeof createSupabaseClient<Database>> | null = null
+
 export function createAdminClient() {
-  return createSupabaseClient<Database>(
+  if (adminClientInstance) return adminClientInstance
+
+  adminClientInstance = createSupabaseClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
@@ -59,4 +65,6 @@ export function createAdminClient() {
       },
     }
   )
+
+  return adminClientInstance
 }

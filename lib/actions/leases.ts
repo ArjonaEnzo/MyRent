@@ -232,6 +232,7 @@ export async function getLeaseAdjustments(leaseId: string): Promise<LeaseAdjustm
     .eq('lease_id', validId)
     .eq('account_id', accountId)
     .order('effective_date', { ascending: false })
+    .limit(100)
 
   if (error) {
     logger.error('Failed to fetch lease adjustments', { error: error.message })
