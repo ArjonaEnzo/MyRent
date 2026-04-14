@@ -22,7 +22,14 @@ import {
 } from 'lucide-react'
 import type { Database } from '@/types/database.types'
 import { formatPeriod, formatDate } from '@/lib/utils/format'
-import { computeNextBillingDate, computeNextAdjustmentDate, formatBillingDayMonth } from '@/lib/utils/lease-billing'
+import {
+  computeNextBillingDate,
+  computeNextAdjustmentDate,
+  formatBillingDayMonth,
+  daysUntilBillingDay,
+  computeLeaseProgress,
+} from '@/lib/utils/lease-billing'
+import { DownloadYearReceiptsButton } from '@/components/tenant/DownloadYearReceiptsButton'
 
 export const metadata: Metadata = {
   title: 'Mi Dashboard | MyRent',
@@ -102,6 +109,9 @@ export default async function TenantDashboardPage() {
     (r) => !['draft', 'paid', 'cancelled'].includes(r.status)
   )
   const paidReceipts = (receipts ?? []).filter((r) => r.status === 'paid')
+  const signaturePending = (receipts ?? []).filter((r) => r.status === 'signature_pending')
+  const currentYear = new Date().getFullYear()
+  const hasPaidThisYear = paidReceipts.some((r) => r.period.startsWith(`${currentYear}-`))
 
   const totalPending = pendingReceipts.reduce((sum, r) => sum + (r.snapshot_amount ?? 0), 0)
   const pendingCurrency = pendingReceipts[0]?.snapshot_currency ?? 'ARS'
@@ -114,6 +124,22 @@ export default async function TenantDashboardPage() {
         title="Mi dashboard"
         description="Resumen de tus contratos y pagos"
       />
+
+      {signaturePending.length > 0 && (
+        <div className="flex items-start gap-3 rounded-2xl border border-violet-500/30 bg-violet-500/10 p-4">
+          <FileText className="mt-0.5 h-5 w-5 shrink-0 text-violet-500" />
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-foreground">
+              {signaturePending.length === 1
+                ? 'Tenés un documento pendiente de firma'
+                : `Tenés ${signaturePending.length} documentos pendientes de firma`}
+            </p>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Revisá el recibo en la sección de pendientes y completá la firma digital.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Summary stats */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -187,15 +213,57 @@ export default async function TenantDashboardPage() {
                     </span>
                   </div>
 
-                  {/* Next billing date */}
-                  {lease.billing_day && lease.auto_billing_enabled && (
-                    <div className="flex items-center gap-1.5 text-xs text-primary">
-                      <Bell className="h-3.5 w-3.5" />
-                      <span>
-                        Próximo cobro: {formatBillingDayMonth(computeNextBillingDate(lease.billing_day))}
-                      </span>
-                    </div>
-                  )}
+                  {/* Contract progress */}
+                  {(() => {
+                    const progress = computeLeaseProgress(
+                      lease.start_date as string,
+                      lease.end_date,
+                    )
+                    if (!progress) return null
+                    return (
+                      <div className="mt-1">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>
+                            Mes {progress.monthsElapsed} de {progress.totalMonths}
+                          </span>
+                          <span className="tabular-nums">{progress.percent}%</span>
+                        </div>
+                        <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                          <div
+                            className="h-full rounded-full bg-primary transition-all"
+                            style={{ width: `${progress.percent}%` }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })()}
+
+                  {/* Next billing date with countdown */}
+                  {lease.billing_day && lease.auto_billing_enabled && (() => {
+                    const days = daysUntilBillingDay(lease.billing_day)
+                    const tone =
+                      days <= 5
+                        ? 'bg-red-500/10 text-red-700 dark:text-red-400'
+                        : days <= 15
+                          ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400'
+                          : 'bg-primary/10 text-primary'
+                    return (
+                      <div
+                        className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs ${tone}`}
+                      >
+                        <Bell className="h-3.5 w-3.5 shrink-0" />
+                        <span>
+                          Próximo cobro: {formatBillingDayMonth(computeNextBillingDate(lease.billing_day))}
+                          {' · '}
+                          {days === 0
+                            ? 'hoy'
+                            : days === 1
+                              ? 'mañana'
+                              : `en ${days} días`}
+                        </span>
+                      </div>
+                    )
+                  })()}
 
                   {/* Upcoming adjustment alert */}
                   {lease.adjustment_type && lease.adjustment_frequency_months && lease.start_date && (() => {
@@ -299,7 +367,15 @@ export default async function TenantDashboardPage() {
       {/* Payment history */}
       {paidReceipts.length > 0 && (
         <section>
-          <SectionHeader icon={CheckCircle2} title="Historial de pagos" />
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+              <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+                Historial de pagos
+              </h2>
+            </div>
+            {hasPaidThisYear && <DownloadYearReceiptsButton year={currentYear} />}
+          </div>
           <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
             <ExpandableList
               initialCount={6}
