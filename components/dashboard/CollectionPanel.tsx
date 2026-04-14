@@ -2,6 +2,7 @@
 
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
 
 interface CollectionPanelProps {
   totalReceipts: number
@@ -9,6 +10,8 @@ interface CollectionPanelProps {
   totalExpected: number
   totalCollected: number
   currency: string
+  /** Cobrado del mes anterior, para calcular delta */
+  previousCollected?: number
 }
 
 const formatCurrency = (amount: number, currency: string) =>
@@ -25,9 +28,19 @@ export function CollectionPanel({
   totalExpected,
   totalCollected,
   currency,
+  previousCollected,
 }: CollectionPanelProps) {
   const collectionRate = totalReceipts > 0 ? Math.round((paidReceipts / totalReceipts) * 100) : 0
   const pendingAmount = totalExpected - totalCollected
+
+  let deltaPercent: number | null = null
+  let deltaDirection: 'up' | 'down' | 'flat' = 'flat'
+  if (previousCollected !== undefined && previousCollected > 0) {
+    deltaPercent = Math.round(((totalCollected - previousCollected) / previousCollected) * 100)
+    deltaDirection = deltaPercent > 0 ? 'up' : deltaPercent < 0 ? 'down' : 'flat'
+  } else if (previousCollected === 0 && totalCollected > 0) {
+    deltaDirection = 'up'
+  }
 
   return (
     <Card className="border border-border shadow-sm p-5">
@@ -66,7 +79,25 @@ export function CollectionPanel({
 
         <div className="flex-1 space-y-2">
           <div>
-            <p className="text-xs text-muted-foreground">Cobrado</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-xs text-muted-foreground">Cobrado</p>
+              {deltaPercent !== null && (
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums',
+                    deltaDirection === 'up' && 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+                    deltaDirection === 'down' && 'bg-red-500/10 text-red-600 dark:text-red-400',
+                    deltaDirection === 'flat' && 'bg-muted text-muted-foreground',
+                  )}
+                  title="Comparado con el mes anterior"
+                >
+                  {deltaDirection === 'up' && <TrendingUp className="h-2.5 w-2.5" />}
+                  {deltaDirection === 'down' && <TrendingDown className="h-2.5 w-2.5" />}
+                  {deltaDirection === 'flat' && <Minus className="h-2.5 w-2.5" />}
+                  {deltaPercent > 0 ? '+' : ''}{deltaPercent}%
+                </span>
+              )}
+            </div>
             <p className="text-sm font-semibold text-foreground">
               {formatCurrency(totalCollected, currency)}
             </p>

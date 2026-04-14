@@ -4,6 +4,8 @@ import { getCurrentUserWithAccount } from '@/lib/supabase/auth'
 import { createClient } from '@/lib/supabase/server'
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
 import { DraftReceiptsBanner } from '@/components/dashboard/DraftReceiptsBanner'
+import { OverdueBanner, type OverdueTenant } from '@/components/dashboard/OverdueBanner'
+import { OnboardingBanners } from '@/components/dashboard/OnboardingBanners'
 import { StatsRow, type Stat } from '@/components/dashboard/StatsRow'
 import { AnalyticsSection } from '@/components/dashboard/AnalyticsSection'
 import { OccupancyAlertsSection } from '@/components/dashboard/OccupancyAlertsSection'
@@ -29,6 +31,9 @@ function getDashboardDates() {
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
   const currentPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 
+  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  const previousPeriod = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`
+
   const periods: string[] = []
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
@@ -40,7 +45,7 @@ function getDashboardDates() {
   const in60DaysStr = in60Days.toISOString().split('T')[0]
   const todayStr = now.toISOString().split('T')[0]
 
-  return { now, monthStart, currentPeriod, periods, in60DaysStr, todayStr }
+  return { now, monthStart, currentPeriod, previousPeriod, periods, in60DaysStr, todayStr }
 }
 
 const quickActions: QuickAction[] = [
@@ -159,13 +164,90 @@ async function StatsSection({ accountId }: { accountId: string }) {
   )
 }
 
+// ── Async section: Overdue + Onboarding banners ────────────────────────
+
+async function AlertsSection({ accountId }: { accountId: string }) {
+  const supabase = await createClient()
+  const { currentPeriod } = getDashboardDates()
+
+  const [overdueRes, draftLeasesRes, tenantsWithoutPortalRes] = await Promise.all([
+    supabase
+      .from('receipts')
+      .select('tenant_id, snapshot_tenant_name, snapshot_amount, snapshot_currency')
+      .eq('account_id', accountId)
+      .in('status', ['generated', 'sent', 'signature_pending', 'signed'])
+      .lt('period', currentPeriod)
+      .is('deleted_at', null),
+    supabase
+      .from('leases')
+      .select('*', { count: 'exact', head: true })
+      .eq('account_id', accountId)
+      .eq('status', 'draft')
+      .is('deleted_at', null),
+    supabase
+      .from('tenants')
+      .select('*', { count: 'exact', head: true })
+      .eq('account_id', accountId)
+      .is('auth_user_id', null)
+      .is('deleted_at', null),
+  ])
+
+  const overdueReceipts = (overdueRes.data ?? []) as {
+    tenant_id: string
+    snapshot_tenant_name: string
+    snapshot_amount: number
+    snapshot_currency: string
+  }[]
+
+  const byTenant = new Map<string, OverdueTenant>()
+  let totalAmount = 0
+  let topCurrency = 'ARS'
+  for (const r of overdueReceipts) {
+    totalAmount += Number(r.snapshot_amount)
+    topCurrency = r.snapshot_currency
+    const existing = byTenant.get(r.tenant_id)
+    if (existing) {
+      existing.count += 1
+      existing.total += Number(r.snapshot_amount)
+    } else {
+      byTenant.set(r.tenant_id, {
+        tenantId: r.tenant_id,
+        tenantName: r.snapshot_tenant_name || 'Sin nombre',
+        count: 1,
+        total: Number(r.snapshot_amount),
+        currency: r.snapshot_currency,
+      })
+    }
+  }
+  const topTenants = [...byTenant.values()]
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 3)
+
+  return (
+    <>
+      <OverdueBanner
+        totalAmount={totalAmount}
+        currency={topCurrency}
+        count={overdueReceipts.length}
+        topTenants={topTenants}
+      />
+      <OnboardingBanners
+        draftLeasesCount={draftLeasesRes.count ?? 0}
+        tenantsWithoutPortalCount={tenantsWithoutPortalRes.count ?? 0}
+      />
+    </>
+  )
+}
+
 // ── Async section: Revenue chart + Collection panel ────────────────────
 
 async function RevenueSection({ accountId }: { accountId: string }) {
   const supabase = await createClient()
   const { currentPeriod, periods } = getDashboardDates()
 
-  const [receiptsLast6Res, paidThisMonthRes, totalThisMonthRes] = await Promise.all([
+  const { previousPeriod } = getDashboardDates()
+
+  const [receiptsLast6Res, paidThisMonthRes, totalThisMonthRes, paidPrevMonthRes] = await Promise.all([
     supabase
       .from('receipts')
       .select('period, snapshot_amount, snapshot_currency, status')
@@ -186,6 +268,13 @@ async function RevenueSection({ accountId }: { accountId: string }) {
       .eq('period', currentPeriod)
       .is('deleted_at', null)
       .not('status', 'in', '(cancelled)'),
+    supabase
+      .from('receipts')
+      .select('snapshot_amount')
+      .eq('account_id', accountId)
+      .eq('status', 'paid')
+      .eq('period', previousPeriod)
+      .is('deleted_at', null),
   ])
 
   const receiptsLast6 = (receiptsLast6Res.data ?? []) as {
@@ -227,6 +316,9 @@ async function RevenueSection({ accountId }: { accountId: string }) {
   const totalReceiptsMonth = allThisMonth.length
   const paidReceiptsMonth = paidThisMonth.length
 
+  const previousCollected = ((paidPrevMonthRes.data ?? []) as { snapshot_amount: number }[])
+    .reduce((s, r) => s + Number(r.snapshot_amount), 0)
+
   return (
     <AnalyticsSection
       revenueData={revenueData}
@@ -237,6 +329,7 @@ async function RevenueSection({ accountId }: { accountId: string }) {
         totalExpected,
         totalCollected,
         currency: 'ARS',
+        previousCollected,
       }}
     />
   )
@@ -396,6 +489,10 @@ export default async function DashboardPage() {
 
       <Suspense fallback={<StatsSkeleton />}>
         <StatsSection accountId={accountId} />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <AlertsSection accountId={accountId} />
       </Suspense>
 
       <Suspense fallback={<RevenueChartSkeleton />}>
