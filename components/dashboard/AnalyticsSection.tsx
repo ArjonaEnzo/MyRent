@@ -13,6 +13,7 @@ interface AnalyticsSectionProps {
     totalExpected: number
     totalCollected: number
     currency: string
+    previousCollected?: number
   }
 }
 
