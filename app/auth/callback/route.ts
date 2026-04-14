@@ -13,8 +13,13 @@ export async function GET(request: Request) {
     if (!error) {
       return NextResponse.redirect(`${origin}${next}`)
     }
+
+    const detail = encodeURIComponent(error.message || 'unknown')
+    const status = error.status ?? ''
+    return NextResponse.redirect(
+      `${origin}/login?error=auth_callback_failed&detail=${detail}&status=${status}`
+    )
   }
 
-  // If code exchange fails, redirect to login with error
-  return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`)
+  return NextResponse.redirect(`${origin}/login?error=auth_callback_failed&detail=no_code`)
 }
