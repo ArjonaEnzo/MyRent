@@ -81,7 +81,7 @@ export function CollectionPanel({
           <div>
             <div className="flex items-center gap-1.5">
               <p className="text-xs text-muted-foreground">Cobrado</p>
-              {deltaPercent !== null && (
+              {(deltaPercent !== null || (previousCollected === 0 && totalCollected > 0)) && (
                 <span
                   className={cn(
                     'inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums',
@@ -94,7 +94,9 @@ export function CollectionPanel({
                   {deltaDirection === 'up' && <TrendingUp className="h-2.5 w-2.5" />}
                   {deltaDirection === 'down' && <TrendingDown className="h-2.5 w-2.5" />}
                   {deltaDirection === 'flat' && <Minus className="h-2.5 w-2.5" />}
-                  {deltaPercent > 0 ? '+' : ''}{deltaPercent}%
+                  {deltaPercent !== null
+                    ? `${deltaPercent > 0 ? '+' : ''}${deltaPercent}%`
+                    : 'nuevo'}
                 </span>
               )}
             </div>
