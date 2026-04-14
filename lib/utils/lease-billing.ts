@@ -87,3 +87,32 @@ export function formatBillingDayMonth(date: Date): string {
     month: 'long',
   })
 }
+
+/**
+ * Progreso de un contrato entre start_date y end_date.
+ * Devuelve meses transcurridos, totales y porcentaje (0-100).
+ * Si no hay end_date devuelve null.
+ */
+export function computeLeaseProgress(
+  startDate: string,
+  endDate: string | null | undefined,
+  from?: Date,
+): { monthsElapsed: number; totalMonths: number; percent: number } | null {
+  if (!endDate) return null
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+  const ref = from ?? new Date()
+
+  const totalMonths =
+    (end.getFullYear() - start.getFullYear()) * 12 +
+    (end.getMonth() - start.getMonth())
+  if (totalMonths <= 0) return null
+
+  const elapsedMonths =
+    (ref.getFullYear() - start.getFullYear()) * 12 +
+    (ref.getMonth() - start.getMonth())
+  const monthsElapsed = Math.max(0, Math.min(totalMonths, elapsedMonths))
+  const percent = Math.round((monthsElapsed / totalMonths) * 100)
+
+  return { monthsElapsed, totalMonths, percent }
+}
