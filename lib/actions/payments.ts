@@ -249,11 +249,12 @@ export async function initiateOnlinePayment(receiptId: string): Promise<
         .update({ status: 'failed', provider_status: 'preference_creation_failed' })
         .eq('id', newPaymentId)
 
+      const mpDetail = mpError instanceof Error ? mpError.message : String(mpError)
       logger.error('MP preference creation failed', {
-        error: mpError instanceof Error ? mpError.message : String(mpError),
+        error: mpDetail,
         paymentId: newPaymentId,
       })
-      return { success: false, error: 'No se pudo iniciar el pago con Mercado Pago. Intentá de nuevo.' }
+      return { success: false, error: `MP: ${mpDetail}` }
     }
 
     // 5. Usar init_point — MP lo routea al checkout correcto (sandbox/prod)
