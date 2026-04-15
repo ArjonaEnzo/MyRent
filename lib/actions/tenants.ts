@@ -14,6 +14,7 @@ import { logger, logError } from '@/lib/utils/logger'
 import { z } from 'zod'
 import { propertyRateLimit } from '@/lib/utils/rate-limit'
 import { validateId } from '@/lib/validations/common'
+import { checkQuota } from '@/lib/subscriptions/plan-limits'
 
 export async function createTenant(formData: TenantInput) {
   try {
@@ -21,6 +22,11 @@ export async function createTenant(formData: TenantInput) {
     await requireRole(supabase, accountId, user.id, ['owner', 'admin'])
 
     await propertyRateLimit.limit(user.id)
+
+    const quota = await checkQuota(accountId, 'tenant')
+    if (!quota.allowed) {
+      return { success: false, error: quota.reason ?? 'Límite de plan alcanzado' }
+    }
 
     const validated = tenantSchema.parse(formData)
 

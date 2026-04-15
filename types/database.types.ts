@@ -10,6 +10,7 @@ export type PaymentStatus = 'pending' | 'processing' | 'paid' | 'failed' | 'canc
 export type PaymentProvider = 'manual' | 'mercadopago' | 'stripe' | 'bank_transfer'
 export type SignatureStatus = 'pending' | 'landlord_signed' | 'fully_signed' | 'declined' | 'expired'
 export type LineItemType = 'rent' | 'expensas' | 'extra' | 'discount' | 'tax'
+export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'cancelled' | 'expired'
 
 /** Discriminated union for server action return types */
 export type ActionResult<T = void> =
@@ -45,6 +46,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_payment_providers: {
+        Row: {
+          access_token: string
+          account_id: string
+          connected_at: string
+          disconnected_at: string | null
+          expires_at: string | null
+          id: string
+          metadata: Json
+          provider: string
+          provider_user_id: string | null
+          public_key: string | null
+          refresh_token: string | null
+          scope: string | null
+        }
+        Insert: {
+          access_token: string
+          account_id: string
+          connected_at?: string
+          disconnected_at?: string | null
+          expires_at?: string | null
+          id?: string
+          metadata?: Json
+          provider: string
+          provider_user_id?: string | null
+          public_key?: string | null
+          refresh_token?: string | null
+          scope?: string | null
+        }
+        Update: {
+          access_token?: string
+          account_id?: string
+          connected_at?: string
+          disconnected_at?: string | null
+          expires_at?: string | null
+          id?: string
+          metadata?: Json
+          provider?: string
+          provider_user_id?: string | null
+          public_key?: string | null
+          refresh_token?: string | null
+          scope?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_payment_providers_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_dashboard_overview"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "account_payment_providers_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       account_users: {
         Row: {
           account_id: string
@@ -1097,6 +1158,182 @@ export type Database = {
           },
         ]
       }
+      subscription_events: {
+        Row: {
+          account_id: string | null
+          event_data: Json
+          event_type: string
+          id: string
+          processed_at: string
+          provider: string
+          provider_event_id: string
+          subscription_id: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          event_data?: Json
+          event_type: string
+          id?: string
+          processed_at?: string
+          provider: string
+          provider_event_id: string
+          subscription_id?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          event_data?: Json
+          event_type?: string
+          id?: string
+          processed_at?: string
+          provider?: string
+          provider_event_id?: string
+          subscription_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_events_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_dashboard_overview"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "subscription_events_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_events_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_plans: {
+        Row: {
+          created_at: string
+          features: Json
+          id: string
+          is_active: boolean
+          max_properties: number | null
+          max_receipts_per_month: number | null
+          max_tenants: number | null
+          name: string
+          price_ars: number
+          price_usd: number | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          features?: Json
+          id: string
+          is_active?: boolean
+          max_properties?: number | null
+          max_receipts_per_month?: number | null
+          max_tenants?: number | null
+          name: string
+          price_ars?: number
+          price_usd?: number | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          features?: Json
+          id?: string
+          is_active?: boolean
+          max_properties?: number | null
+          max_receipts_per_month?: number | null
+          max_tenants?: number | null
+          name?: string
+          price_ars?: number
+          price_usd?: number | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          account_id: string
+          cancel_at_period_end: boolean
+          cancelled_at: string | null
+          created_at: string
+          current_period_end: string
+          current_period_start: string
+          id: string
+          metadata: Json
+          plan_id: string
+          provider: string | null
+          provider_customer_id: string | null
+          provider_subscription_id: string | null
+          status: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          cancel_at_period_end?: boolean
+          cancelled_at?: string | null
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          id?: string
+          metadata?: Json
+          plan_id: string
+          provider?: string | null
+          provider_customer_id?: string | null
+          provider_subscription_id?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          cancel_at_period_end?: boolean
+          cancelled_at?: string | null
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          id?: string
+          metadata?: Json
+          plan_id?: string
+          provider?: string | null
+          provider_customer_id?: string | null
+          provider_subscription_id?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: true
+            referencedRelation: "account_dashboard_overview"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: true
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           account_id: string
@@ -1883,6 +2120,7 @@ export type Database = {
         Returns: boolean
       }
       cleanup_rate_limits: { Args: never; Returns: undefined }
+      cleanup_stale_rate_limits: { Args: never; Returns: undefined }
       enforce_account_role: {
         Args: { p_account_id: string; p_roles: string[]; p_user_id: string }
         Returns: undefined
@@ -1966,6 +2204,18 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      get_account_plan_limits: {
+        Args: { p_account_id: string }
+        Returns: {
+          current_period_end: string
+          features: Json
+          max_properties: number
+          max_receipts_per_month: number
+          max_tenants: number
+          plan_id: string
+          status: Database["public"]["Enums"]["subscription_status"]
+        }[]
       }
       get_tenant_id_for_user: { Args: never; Returns: string }
       has_account_role: {
@@ -2064,7 +2314,12 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      subscription_status:
+        | "trialing"
+        | "active"
+        | "past_due"
+        | "cancelled"
+        | "expired"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2191,6 +2446,14 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      subscription_status: [
+        "trialing",
+        "active",
+        "past_due",
+        "cancelled",
+        "expired",
+      ],
+    },
   },
 } as const

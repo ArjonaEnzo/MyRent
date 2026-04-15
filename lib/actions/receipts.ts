@@ -33,6 +33,7 @@ import React from 'react'
 import { receiptRateLimit } from '@/lib/utils/rate-limit'
 import { validateId } from '@/lib/validations/common'
 import { withRetry } from '@/lib/utils/retry'
+import { checkQuota } from '@/lib/subscriptions/plan-limits'
 
 export async function createReceipt(formData: ReceiptInput) {
   try {
@@ -40,6 +41,11 @@ export async function createReceipt(formData: ReceiptInput) {
     await requireRole(supabase, accountId, user.id, ['owner', 'admin'])
 
     await receiptRateLimit.limit(user.id)
+
+    const quota = await checkQuota(accountId, 'receipt')
+    if (!quota.allowed) {
+      return { success: false, error: quota.reason ?? 'Límite de plan alcanzado' }
+    }
 
     const validated = receiptSchema.parse(formData)
     const adminSupabase = createAdminClient()
