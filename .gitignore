@@ -57,6 +57,7 @@ Thumbs.db
 
 # Local debug scripts (may contain hardcoded credentials)
 query_db.mjs
+scripts/
 
 # Test screenshots
 test-screenshots/
