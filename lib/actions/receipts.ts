@@ -203,18 +203,57 @@ export async function resendReceiptEmail(receiptId: string) {
     const tenant = receipt.tenants as unknown as { email: string | null; full_name: string } | null
 
     if (!tenant?.email) {
-      return { success: false, error: 'El inquilino no tiene email registrado' }
+      return { success: false, error: 'El inquilino no tiene email registrado. Agregá uno en el perfil.' }
     }
 
-    await sendReceiptEmail({
-      to: tenant.email,
-      recipientName: receipt.snapshot_tenant_name,
-      period: receipt.period,
-      amount: receipt.snapshot_amount,
-      currency: receipt.snapshot_currency,
-      pdfUrl: receipt.pdf_url ?? '',
-      userId: user.id,
-    })
+    // Validar que el recibo tenga PDF generado. Si está en draft, no se puede reenviar.
+    if (!receipt.pdf_url) {
+      return {
+        success: false,
+        error: receipt.status === 'draft'
+          ? 'Este recibo está en borrador. Finalizalo primero para enviar el email.'
+          : 'El recibo no tiene PDF generado. Contactá soporte.',
+      }
+    }
+
+    try {
+      await sendReceiptEmail({
+        to: tenant.email,
+        recipientName: receipt.snapshot_tenant_name,
+        period: receipt.period,
+        amount: receipt.snapshot_amount,
+        currency: receipt.snapshot_currency,
+        pdfUrl: receipt.pdf_url,
+        userId: user.id,
+      })
+    } catch (sendError) {
+      logError(sendError, { action: 'resendReceiptEmail.send', receiptId: validId })
+      const message = sendError instanceof Error ? sendError.message : String(sendError)
+
+      // Devolver mensajes específicos según tipo de error
+      if (message.includes('Límite excedido')) {
+        return {
+          success: false,
+          error: 'Alcanzaste el límite de emails por hora. Esperá unos minutos y probá de nuevo.',
+        }
+      }
+      if (message.includes('domain') || message.includes('not verified')) {
+        return {
+          success: false,
+          error: 'Problema con el dominio de email. Contactá soporte.',
+        }
+      }
+      if (message.includes('Invalid') && message.includes('email')) {
+        return {
+          success: false,
+          error: `Email del inquilino inválido: ${tenant.email}`,
+        }
+      }
+      return {
+        success: false,
+        error: `No se pudo enviar el email: ${message.substring(0, 140)}`,
+      }
+    }
 
     await supabase
       .from('receipts')
