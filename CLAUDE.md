@@ -43,6 +43,7 @@ Before reporting any task complete: run `pnpm test` and `pnpm type-check`.
 - `app/tenant/` — Tenant portal: `login/`, `(portal)/dashboard/`, `(portal)/payment/{success,failure,pending}/`. Middleware redirects unauthenticated tenants to `/tenant/login`. Tenants are linked to auth users via `tenants.auth_user_id`.
 - `app/api/webhooks/` — External webhook handlers: `hellosign/route.ts` (digital signatures), `mercadopago/route.ts` (payment callbacks).
 - `app/api/cron/` — Vercel Cron endpoints: `daily-billing/route.ts` (active endpoint — runs pre-billing notifications and draft receipt generation); `generate-receipts/route.ts` (deprecated redirect to `daily-billing`).
+- `app/api/health/` — DB connectivity check for uptime monitors. Returns `{status:'ok'|'degraded', db, latencyMs}` with HTTP 200/503.
 
 > **Two auth contexts**: Staff users authenticate via `getCurrentUserWithAccount()` from `lib/supabase/auth.ts`. Tenant portal users authenticate via `getCurrentTenant()` from `lib/supabase/tenant-auth.ts` — returns `{ user, tenantId, accountId, supabase }`. Staff logins and tenant logins share the same Supabase Auth instance but are separated by RLS policies. Never mix the two contexts in the same action.
 
@@ -88,13 +89,14 @@ import { isRedirectError } from 'next/dist/client/components/redirect'
 - **`lib/actions/`** — Server Actions for auth, properties, tenants, leases, receipts, signatures, payments, profile. All marked `'use server'`.
 - **`lib/payments/`** — `mercadopago-client.ts`: wraps the Mercado Pago Checkout Pro API (create preference, get payment details, verify webhook HMAC, map MP status).
 - **`lib/validations/`** — Zod schemas mirroring each entity (auth, property, tenant, lease, receipt, profile, common, payment).
-- **`lib/utils/`** — Custom error classes (`AppError` hierarchy with status codes), logger, in-memory rate limiter, retry with exponential backoff.
+- **`lib/utils/`** — `errors.ts`: `AppError` base class + subclasses (`NotFoundError`, `ValidationError`, `RateLimitError`, etc.), each with `statusCode` and `isOperational` flag. `rate-limit.ts`: Postgres-backed rate limiter via `check_rate_limit` RPC (fail-open on DB error). `logger.ts`: structured JSON logging. `retry.ts`: exponential backoff.
 - **`lib/utils.ts`** — Shadcn `cn()` utility (clsx + tailwind-merge).
 - **`lib/i18n/translations.ts`** — Spanish/English UI string translations; used via `language-provider` context.
 - **`lib/pdf/receipt-template.tsx`** — React PDF component for receipt generation.
 - **`lib/email/`** — Email senders via Resend: `receipt-email.ts` (PDF download link), `tenant-heads-up-email.ts` (pre-billing notification to tenant, 7 days ahead), `landlord-reminder-email.ts` (pre-billing reminder to landlord, 5 days ahead), `email-utils.ts` (HTML templating helpers).
 - **`lib/signatures/hellosign-client.ts`** — HelloSign (Dropbox Sign) client for digital signatures.
-- **`lib/env.ts`** — Zod-validated environment variables.
+- **`lib/env.ts`** — Zod-validated environment variables (auto-trims whitespace from all values — guards against Vercel dashboard input bleeding).
+- **`lib/subscriptions/`** — `plan-limits.ts`: `getAccountPlanLimits()`, `getAccountUsage()`, `checkQuota()`. Call `checkQuota()` before creating properties, tenants, or receipts. Blocks on expired/cancelled plans.
 - **`components/`** — Organized by domain: `ui/` (Shadcn), `dashboard/`, `properties/`, `tenants/`, `leases/`, `receipts/`, `account/`, `tenant/` (portal), `providers/`, `shared/`.
 - **`types/database.types.ts`** — Auto-generated Supabase types + hand-written domain types at the top (`AccountRole`, `LeaseStatus`, `ReceiptStatus`, etc.). Regenerate DB types with: `npx supabase gen types typescript --project-id "PROJECT_REF" > types/database.types.ts`
 - **`supabase/migrations/`** — SQL migration files for database schema changes.
@@ -139,6 +141,10 @@ Active tables (reflected in `types/database.types.ts`):
 | `audit_logs`        | `id`, `account_id`, `entity_type`, `entity_id`, `action`, `actor_user_id`, `metadata`                                                                                                    |
 | `receipt_line_items` | `id`, `receipt_id`, `account_id`, `label`, `amount`, `item_type`, `sort_order` — itemized charges on draft receipts                                                                     |
 | `signature_events`  | audit trail for HelloSign webhook events                                                                                                                                                 |
+| `subscription_plans` | `id` (text PK: `free`/`starter`/`pro`/`enterprise`), `max_properties`, `max_tenants`, `max_receipts_per_month`, `features` (jsonb flags), `is_active`, `price_ars/usd`               |
+| `subscriptions`     | `id`, `account_id` (UNIQUE), `plan_id`, `status` (`subscription_status` enum), `current_period_end`, `cancel_at_period_end` — one per account, auto-provisioned as `free` on account create |
+| `subscription_events` | Immutable webhook log for billing events (same idempotency pattern as `payment_events`)                                                                                               |
+| `account_payment_providers` | OAuth MP tokens per account for rent payments (landlord ↔ tenant flow, platform does not intermediate)                                                               |
 
 Soft deletes use `deleted_at` / `deleted_by` / `delete_reason` columns — filter with `.is('deleted_at', null)` or use the `*_overview` DB views which already filter soft-deleted rows. Prefer views for reads; use raw tables when you need soft-delete fields explicitly.
 
@@ -161,6 +167,7 @@ ReceiptStatus =
   "cancelled" |
   "failed";
 PaymentStatus = "pending" | "processing" | "paid" | "failed" | "cancelled" | "refunded";
+SubscriptionStatus = "trialing" | "active" | "past_due" | "cancelled" | "expired";
 SignatureStatus =
   "pending" | "landlord_signed" | "fully_signed" | "declined" | "expired";
 ```
@@ -221,7 +228,8 @@ Digital signatures via HelloSign (Dropbox Sign):
 - Currency support: ARS and USD.
 - Properties cannot be archived if they have active leases; tenants cannot be archived if they have receipts.
 - One receipt per tenant per period (DB unique constraint on `tenant_id + period`).
-- Rate limiting: 10 receipts/min, 5 properties/min, 20 emails/hour (in-memory; switch to Redis for production).
+- Rate limiting: Postgres-backed via `check_rate_limit` RPC (fail-open). Limits: 10 receipts/min, 5 properties/min, 20 emails/hour.
+- Plan quota: `checkQuota()` in `lib/subscriptions/plan-limits.ts` gates resource creation on Free plan limits.
 - Leases support automatic rent adjustments by percentage, index (ICL/IPC/CER/CVS/UVA), fixed amount, or manual — stored in `adjustment_*` columns.
 
 ## Path Alias
@@ -237,6 +245,8 @@ Optional (for digital signatures): `HELLOSIGN_API_KEY`, `HELLOSIGN_CLIENT_ID`.
 Optional (for Mercado Pago tenant payments): `MERCADOPAGO_ACCESS_TOKEN` (use `TEST-…` prefix for sandbox — sandbox vs prod is auto-detected from this prefix), `MERCADOPAGO_WEBHOOK_SECRET` (required in production for HMAC signature verification; if absent in dev, verification is skipped).
 
 Optional (for Vercel Cron): `CRON_SECRET` (authorizes `/api/cron/*` endpoints).
+
+`vercel.json` sets function `maxDuration`: 300s for cron, 30s for webhooks.
 
 ## Deployment (Vercel)
 
