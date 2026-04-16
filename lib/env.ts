@@ -22,6 +22,10 @@ const envSchema = z.object({
   MERCADOPAGO_ACCESS_TOKEN: trimmedOptional,
   // Webhook Secret: generado en Tus integraciones → Webhooks → agregar URL
   MERCADOPAGO_WEBHOOK_SECRET: trimmedOptional,
+  // Mercado Pago OAuth — habilita que cada cuenta conecte su propio MP
+  // App ID y Client Secret se obtienen en https://www.mercadopago.com.ar/developers/panel/app
+  MERCADOPAGO_APP_ID: trimmedOptional,
+  MERCADOPAGO_CLIENT_SECRET: trimmedOptional,
   // Cron Secret — protege la ruta /api/cron/* (Vercel lo envía automáticamente)
   CRON_SECRET: trimmedOptional,
 })
@@ -37,5 +41,7 @@ export const env = envSchema.parse({
   HELLOSIGN_CLIENT_ID: process.env.HELLOSIGN_CLIENT_ID,
   MERCADOPAGO_ACCESS_TOKEN: process.env.MERCADOPAGO_ACCESS_TOKEN,
   MERCADOPAGO_WEBHOOK_SECRET: process.env.MERCADOPAGO_WEBHOOK_SECRET,
+  MERCADOPAGO_APP_ID: process.env.MERCADOPAGO_APP_ID,
+  MERCADOPAGO_CLIENT_SECRET: process.env.MERCADOPAGO_CLIENT_SECRET,
   CRON_SECRET: process.env.CRON_SECRET,
 })

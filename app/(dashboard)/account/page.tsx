@@ -1,5 +1,7 @@
 import { getCurrentUser } from '@/lib/supabase/auth'
 import { getProfile } from '@/lib/actions/profile'
+import { getMPStatus } from '@/lib/actions/mp-oauth'
+import { env } from '@/lib/env'
 import { AccountContent } from '@/components/account/AccountContent'
 import { redirect } from 'next/navigation'
 
@@ -15,11 +17,16 @@ export default async function AccountPage() {
     redirect('/login')
   }
 
-  const profileResult = await getProfile()
+  const [profileResult, mpStatus] = await Promise.all([
+    getProfile(),
+    getMPStatus(),
+  ])
 
   if (!profileResult.success || !profileResult.data) {
     redirect('/dashboard')
   }
+
+  const mpOAuthEnabled = !!env.MERCADOPAGO_APP_ID && !!env.MERCADOPAGO_CLIENT_SECRET
 
   return (
     <div className="flex-1 overflow-auto">
@@ -30,6 +37,8 @@ export default async function AccountPage() {
             email: profileResult.data.email,
             avatarUrl: profileResult.data.avatar_url ?? null,
           }}
+          mpStatus={mpStatus}
+          mpOAuthEnabled={mpOAuthEnabled}
         />
       </div>
     </div>

@@ -12,6 +12,7 @@ import { useLanguage } from '@/components/providers/language-provider'
 import { updateProfile, updateEmail, updatePassword, uploadAvatar } from '@/lib/actions/profile'
 import { toast } from 'sonner'
 import { User, Mail, Lock, AlertTriangle, Camera, Loader2 } from 'lucide-react'
+import { MercadoPagoCard } from '@/components/account/MercadoPagoCard'
 
 interface AccountContentProps {
   profile: {
@@ -19,9 +20,15 @@ interface AccountContentProps {
     email: string
     avatarUrl: string | null
   }
+  mpStatus: {
+    connected: boolean
+    providerUserId: string | null
+    connectedAt: string | null
+  }
+  mpOAuthEnabled: boolean
 }
 
-export function AccountContent({ profile }: AccountContentProps) {
+export function AccountContent({ profile, mpStatus, mpOAuthEnabled }: AccountContentProps) {
   const { t } = useLanguage()
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -384,11 +391,20 @@ export function AccountContent({ profile }: AccountContentProps) {
         </Card>
       </motion.div>
 
+      {/* Mercado Pago Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.35 }}
+      >
+        <MercadoPagoCard initialStatus={mpStatus} mpOAuthEnabled={mpOAuthEnabled} />
+      </motion.div>
+
       {/* Danger Zone */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.4 }}
+        transition={{ duration: 0.3, delay: 0.45 }}
       >
         <Card className="border-red-200 dark:border-red-900">
           <CardHeader>

@@ -25,20 +25,15 @@ const MP_WEBHOOK_MAX_SKEW_MS = 60 * 60 * 1000
 
 /**
  * Crea y devuelve el cliente autenticado de Mercado Pago.
- * Lanza un error descriptivo si el access token no está configurado,
- * para facilitar el diagnóstico en entornos sin la integración activa.
+ * Acepta un token opcional (per-account OAuth); si no se pasa,
+ * usa el global de env. Lanza error si ninguno está disponible.
  */
-function getMPClient(): MercadoPagoConfig {
-  if (!env.MERCADOPAGO_ACCESS_TOKEN) {
-    throw new Error(
-      'MERCADOPAGO_ACCESS_TOKEN no configurado. ' +
-      'Agregá la variable de entorno para habilitar pagos online.'
-    )
+function getMPClient(accessToken?: string): MercadoPagoConfig {
+  const token = accessToken ?? env.MERCADOPAGO_ACCESS_TOKEN
+  if (!token) {
+    throw new Error('No hay token de Mercado Pago disponible (ni por cuenta ni global).')
   }
-  return new MercadoPagoConfig({
-    accessToken: env.MERCADOPAGO_ACCESS_TOKEN,
-    options: { timeout: 10_000 },
-  })
+  return new MercadoPagoConfig({ accessToken: token, options: { timeout: 10_000 } })
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -88,6 +83,8 @@ export type CreatePreferenceInput = {
   payerEmail?: string
   /** Nombre del inquilino */
   payerName?: string
+  /** Account ID for per-account webhook URL routing */
+  accountId?: string
 }
 
 /**
@@ -103,10 +100,12 @@ export type CreatePreferenceInput = {
  * el evento de Mercado Pago y actualiza el estado del pago en la DB.
  */
 export async function createCheckoutPreference(
-  input: CreatePreferenceInput
+  input: CreatePreferenceInput,
+  accessToken?: string,
 ): Promise<MPPreferenceResult> {
-  if (!env.MERCADOPAGO_ACCESS_TOKEN) {
-    throw new Error('MERCADOPAGO_ACCESS_TOKEN no configurado.')
+  const token = accessToken ?? env.MERCADOPAGO_ACCESS_TOKEN
+  if (!token) {
+    throw new Error('No hay token de Mercado Pago disponible (ni por cuenta ni global).')
   }
 
   const appUrl = env.NEXT_PUBLIC_APP_URL
@@ -136,20 +135,24 @@ export async function createCheckoutPreference(
   }
 
   if (!isLocalhost) {
+    const notificationUrl = input.accountId
+      ? `${appUrl}/api/webhooks/mercadopago/${input.accountId}`
+      : `${appUrl}/api/webhooks/mercadopago`
+
     body.back_urls = {
       success: `${appUrl}/tenant/payment/success?payment_id=${input.paymentId}`,
       failure: `${appUrl}/tenant/payment/failure?payment_id=${input.paymentId}`,
       pending: `${appUrl}/tenant/payment/pending?payment_id=${input.paymentId}`,
     }
     body.auto_return = 'approved'
-    body.notification_url = `${appUrl}/api/webhooks/mercadopago`
+    body.notification_url = notificationUrl
   }
 
   const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${env.MERCADOPAGO_ACCESS_TOKEN}`,
+      'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify(body),
   })
@@ -185,8 +188,8 @@ export async function createCheckoutPreference(
  * Según la doc oficial, siempre hay que hacer esta llamada adicional
  * porque el webhook solo trae el ID del pago, no su estado completo.
  */
-export async function getPaymentDetails(mpPaymentId: string): Promise<MPPaymentDetails> {
-  const client = getMPClient()
+export async function getPaymentDetails(mpPaymentId: string, accessToken?: string): Promise<MPPaymentDetails> {
+  const client = getMPClient(accessToken)
   const paymentClient = new Payment(client)
 
   const result = await paymentClient.get({ id: mpPaymentId })

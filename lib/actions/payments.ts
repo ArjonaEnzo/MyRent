@@ -11,7 +11,7 @@ import type { Database, Json } from '@/types/database.types'
 import {
   createCheckoutPreference,
 } from '@/lib/payments/mercadopago-client'
-import { env } from '@/lib/env'
+import { getMPAccessTokenForAccount } from '@/lib/payments/mp-token-manager'
 import {
   registerManualPaymentSchema,
   processPaymentEventSchema,
@@ -158,10 +158,6 @@ export async function initiateOnlinePayment(receiptId: string): Promise<
   { success: true; checkoutUrl: string } | { success: false; error: string }
 > {
   try {
-    if (!env.MERCADOPAGO_ACCESS_TOKEN) {
-      return { success: false, error: 'Los pagos online no están habilitados en este momento.' }
-    }
-
     const validReceiptId = validateId(receiptId)
     const { tenantId, user, supabase } = await getCurrentTenant()
 
@@ -185,6 +181,12 @@ export async function initiateOnlinePayment(receiptId: string): Promise<
           ? 'Este recibo ya fue pagado.'
           : 'Este recibo fue cancelado.',
       }
+    }
+
+    // Lookup per-account MP token (falls back to global)
+    const mpToken = await getMPAccessTokenForAccount(receipt.account_id)
+    if (!mpToken) {
+      return { success: false, error: 'Los pagos online no están habilitados para esta cuenta. El propietario debe conectar su cuenta de Mercado Pago.' }
     }
 
     // 2. Idempotencia: reusar pago pendiente existente si tiene checkout_url
@@ -235,13 +237,17 @@ export async function initiateOnlinePayment(receiptId: string): Promise<
     // 4. Crear preferencia en Mercado Pago
     let preference
     try {
-      preference = await createCheckoutPreference({
-        paymentId: newPaymentId,
-        title: `Alquiler ${receipt.period} — ${receipt.snapshot_tenant_name}`,
-        amount: receipt.snapshot_amount,
-        currency: receipt.snapshot_currency,
-        payerEmail: user.email ?? undefined,
-      })
+      preference = await createCheckoutPreference(
+        {
+          paymentId: newPaymentId,
+          title: `Alquiler ${receipt.period} — ${receipt.snapshot_tenant_name}`,
+          amount: receipt.snapshot_amount,
+          currency: receipt.snapshot_currency,
+          payerEmail: user.email ?? undefined,
+          accountId: receipt.account_id,
+        },
+        mpToken.accessToken,
+      )
     } catch (mpError) {
       // Rollback: marcar el pago como fallido si MP rechaza la solicitud
       await adminSupabase
