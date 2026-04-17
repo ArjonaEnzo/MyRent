@@ -24,7 +24,6 @@ import { DeletePropertyButton } from '@/components/properties/DeletePropertyButt
 import { ReactivatePropertyButton } from '@/components/properties/ReactivatePropertyButton'
 import { PropertyImagesManager } from '@/components/properties/PropertyImagesManager'
 import { PropertyMap } from '@/components/properties/PropertyMap'
-import { env } from '@/lib/env'
 
 export default async function PropertyDetailPage({
   params,
@@ -83,7 +82,7 @@ export default async function PropertyDetailPage({
                 latitude={property.latitude}
                 longitude={property.longitude}
                 address={property.address}
-                apiKey={env.GOOGLE_MAPS_SERVER_KEY}
+                apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
               />
             </>
           )}

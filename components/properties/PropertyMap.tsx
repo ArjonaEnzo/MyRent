@@ -9,8 +9,12 @@ interface PropertyMapProps {
 
 /**
  * Server-rendered Static Map from Google Maps.
- * Uses GOOGLE_MAPS_SERVER_KEY (not the public autocomplete key) because
- * Static Maps is cheap and billed per-load on the server.
+ *
+ * SECURITY: Uses the *public* `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` — this key is
+ * HTTP-referrer restricted to our domains, so even though it ends up in the
+ * page HTML (the browser loads the `<img src>`) it can't be reused from
+ * anywhere else. The unrestricted `GOOGLE_MAPS_SERVER_KEY` is reserved for
+ * server-to-server calls (Geocoding) and must never appear in the browser.
  *
  * Falls back to a plain address display when no API key is configured.
  */
