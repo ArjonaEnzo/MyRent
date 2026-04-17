@@ -23,6 +23,7 @@ import { PageHeader } from '@/components/shared/PageHeader'
 import { DeletePropertyButton } from '@/components/properties/DeletePropertyButton'
 import { ReactivatePropertyButton } from '@/components/properties/ReactivatePropertyButton'
 import { PropertyImagesManager } from '@/components/properties/PropertyImagesManager'
+import { PropertyMap } from '@/components/properties/PropertyMap'
 
 export default async function PropertyDetailPage({
   params,
@@ -73,6 +74,18 @@ export default async function PropertyDetailPage({
       <Card>
         <CardContent className="pt-6 space-y-6">
           <PropertyImagesManager propertyId={property.id} images={images} />
+
+          {property.latitude != null && property.longitude != null && (
+            <>
+              <Separator />
+              <PropertyMap
+                latitude={property.latitude}
+                longitude={property.longitude}
+                address={property.address}
+                apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+              />
+            </>
+          )}
 
           <Separator />
 

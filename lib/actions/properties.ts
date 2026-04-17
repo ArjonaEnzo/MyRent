@@ -23,6 +23,24 @@ import { z } from 'zod'
 import { propertyRateLimit } from '@/lib/utils/rate-limit'
 import { validateId } from '@/lib/validations/common'
 import { checkQuota } from '@/lib/subscriptions/plan-limits'
+import { geocodeAddress } from '@/lib/geocoding/geocode'
+
+/**
+ * Fill missing lat/lng via server-side Geocoding API.
+ * If the autocomplete already provided coordinates, passes through untouched.
+ * Fail-open: returns input unchanged on any error.
+ */
+async function ensureCoordinates(input: PropertyInput): Promise<PropertyInput> {
+  if (input.latitude != null && input.longitude != null) return input
+  const geo = await geocodeAddress(input.address)
+  if (!geo) return input
+  return {
+    ...input,
+    latitude: geo.latitude,
+    longitude: geo.longitude,
+    google_place_id: input.google_place_id ?? geo.place_id ?? null,
+  }
+}
 
 export async function createProperty(formData: PropertyInput) {
   try {
@@ -36,12 +54,21 @@ export async function createProperty(formData: PropertyInput) {
       return { success: false, error: quota.reason ?? 'Límite de plan alcanzado' }
     }
 
-    const validated = propertySchema.parse(formData)
+    const validated = await ensureCoordinates(propertySchema.parse(formData))
 
     const { error } = await supabase.from('properties').insert({
       account_id: accountId,
       name: validated.name,
       address: validated.address,
+      street_name: validated.street_name ?? null,
+      street_number: validated.street_number ?? null,
+      city: validated.city ?? null,
+      province: validated.province ?? null,
+      postal_code: validated.postal_code ?? null,
+      country: validated.country ?? null,
+      latitude: validated.latitude ?? null,
+      longitude: validated.longitude ?? null,
+      google_place_id: validated.google_place_id ?? null,
     })
 
     if (error) {
@@ -71,13 +98,22 @@ export async function updateProperty(id: string, formData: PropertyInput) {
 
     const { user, accountId, supabase } = await getCurrentUserWithAccount()
     await requireRole(supabase, accountId, user.id, ['owner', 'admin'])
-    const validated = propertySchema.parse(formData)
+    const validated = await ensureCoordinates(propertySchema.parse(formData))
 
     const { error } = await supabase
       .from('properties')
       .update({
         name: validated.name,
         address: validated.address,
+        street_name: validated.street_name ?? null,
+        street_number: validated.street_number ?? null,
+        city: validated.city ?? null,
+        province: validated.province ?? null,
+        postal_code: validated.postal_code ?? null,
+        country: validated.country ?? null,
+        latitude: validated.latitude ?? null,
+        longitude: validated.longitude ?? null,
+        google_place_id: validated.google_place_id ?? null,
       })
       .eq('id', validId)
       .eq('account_id', accountId)
