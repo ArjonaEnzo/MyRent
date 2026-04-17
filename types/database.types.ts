@@ -737,37 +737,64 @@ export type Database = {
         Row: {
           account_id: string
           address: string
+          city: string | null
+          country: string | null
           cover_image_url: string | null
           created_at: string
           delete_reason: string | null
           deleted_at: string | null
           deleted_by: string | null
+          google_place_id: string | null
           id: string
+          latitude: number | null
+          longitude: number | null
           name: string
+          postal_code: string | null
+          province: string | null
+          street_name: string | null
+          street_number: string | null
           updated_at: string
         }
         Insert: {
           account_id: string
           address: string
+          city?: string | null
+          country?: string | null
           cover_image_url?: string | null
           created_at?: string
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          google_place_id?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           name: string
+          postal_code?: string | null
+          province?: string | null
+          street_name?: string | null
+          street_number?: string | null
           updated_at?: string
         }
         Update: {
           account_id?: string
           address?: string
+          city?: string | null
+          country?: string | null
           cover_image_url?: string | null
           created_at?: string
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          google_place_id?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           name?: string
+          postal_code?: string | null
+          province?: string | null
+          street_name?: string | null
+          street_number?: string | null
           updated_at?: string
         }
         Relationships: [

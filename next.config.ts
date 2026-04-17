@@ -32,12 +32,12 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`, // unsafe-eval solo en dev (Next.js HMR)
-      "style-src 'self' 'unsafe-inline'", // Tailwind requiere unsafe-inline
-      "img-src 'self' data: https://*.supabase.co https://res.cloudinary.com",
+      `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''} https://maps.googleapis.com https://maps.gstatic.com`, // unsafe-eval solo en dev (Next.js HMR)
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", // Tailwind + Google Maps requieren unsafe-inline
+      "img-src 'self' data: blob: https://*.supabase.co https://res.cloudinary.com https://maps.googleapis.com https://maps.gstatic.com https://*.googleusercontent.com https://*.ggpht.com",
       "media-src 'self' https://res.cloudinary.com",
-      "font-src 'self' data:",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://res.cloudinary.com",
+      "font-src 'self' data: https://fonts.gstatic.com",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://res.cloudinary.com https://maps.googleapis.com",
       "frame-ancestors 'self'",
       "base-uri 'self'",
       "form-action 'self'",

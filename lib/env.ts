@@ -24,6 +24,10 @@ const envSchema = z.object({
   MERCADOPAGO_WEBHOOK_SECRET: trimmedOptional,
   // Cron Secret — protege la ruta /api/cron/* (Vercel lo envía automáticamente)
   CRON_SECRET: trimmedOptional,
+  // Google Maps server-side key — usado para Geocoding API + Static Maps
+  // (restringida por IP en Google Cloud Console, NO por HTTP referrer).
+  // La key client-side (autocomplete) es NEXT_PUBLIC_GOOGLE_MAPS_API_KEY.
+  GOOGLE_MAPS_SERVER_KEY: trimmedOptional,
 })
 
 export const env = envSchema.parse({
@@ -38,4 +42,5 @@ export const env = envSchema.parse({
   MERCADOPAGO_ACCESS_TOKEN: process.env.MERCADOPAGO_ACCESS_TOKEN,
   MERCADOPAGO_WEBHOOK_SECRET: process.env.MERCADOPAGO_WEBHOOK_SECRET,
   CRON_SECRET: process.env.CRON_SECRET,
+  GOOGLE_MAPS_SERVER_KEY: process.env.GOOGLE_MAPS_SERVER_KEY,
 })
