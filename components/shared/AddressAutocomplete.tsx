@@ -210,9 +210,19 @@ export function AddressAutocomplete({
         const place = e.placePrediction.toPlace()
         await handlePlaceSelect(place)
       }
+      // Fallback: keep React state in sync with raw text when the user types
+      // without picking a suggestion. Server-side geocoding fills lat/lng later.
+      const inputHandler = (event: Event) => {
+        const typed = (event.target as HTMLInputElement | null)?.value ?? ''
+        setValue(typed)
+      }
       element.addEventListener('gmp-select', selectHandler)
+      element.addEventListener('input', inputHandler)
       placeSelectListener = {
-        remove: () => element?.removeEventListener('gmp-select', selectHandler),
+        remove: () => {
+          element?.removeEventListener('gmp-select', selectHandler)
+          element?.removeEventListener('input', inputHandler)
+        },
       } as google.maps.MapsEventListener
 
       containerRef.current.innerHTML = ''
